@@ -53,9 +53,9 @@ export const StaticTapTask = ({ task, onSuccess, onFail }) => {
     }
   }, [isStatic, onSuccess, onFail]);
 
-  // Very subtle movement - appears almost static
-  const scale = 1 + Math.sin(phase * Math.PI * 2) * 0.02;
-  const opacity = 0.9 + Math.sin(phase * Math.PI * 2) * 0.1;
+  // When in the static window, circle is actually frozen. Otherwise it moves subtly.
+  const scale = isStatic ? 1 : 1 + Math.sin(phase * Math.PI * 2) * 0.025;
+  const opacity = isStatic ? 1 : 0.88 + Math.sin(phase * Math.PI * 2) * 0.12;
 
   return (
     <div className="flex flex-col items-center justify-center gap-8 w-full" data-testid="static-tap-task">

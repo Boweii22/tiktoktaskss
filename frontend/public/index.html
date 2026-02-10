@@ -1,5 +1,12 @@
 <!doctype html>
 <html lang="en">
+    <script>
+      (function() {
+        var t = localStorage.getItem('impossible_tasks_theme');
+        if (!t && window.matchMedia('(prefers-color-scheme: dark)').matches) t = 'dark';
+        document.documentElement.setAttribute('data-theme', t || 'light');
+      })();
+    </script>
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />

@@ -2,20 +2,24 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { soundManager } from '../../../lib/sounds';
 
+const GRACE_MS = 500;
+
 export const DontTapTask = ({ task, onSuccess, onFail }) => {
   const [started, setStarted] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [result, setResult] = useState(null);
   const intervalRef = useRef(null);
   const startTimeRef = useRef(null);
+  const graceUntilRef = useRef(0);
 
-  const duration = task.config?.duration || 4000;
+  const duration = task.config?.duration || 5000;
 
   const startGame = useCallback(() => {
     setStarted(true);
     setElapsed(0);
     setResult(null);
     startTimeRef.current = Date.now();
+    graceUntilRef.current = Date.now() + GRACE_MS;
     intervalRef.current = setInterval(() => {
       setElapsed(Date.now() - startTimeRef.current);
     }, 50);
@@ -44,6 +48,7 @@ export const DontTapTask = ({ task, onSuccess, onFail }) => {
       startGame();
       return;
     }
+    if (Date.now() < graceUntilRef.current) return;
     clearInterval(intervalRef.current);
     setResult('fail');
     soundManager.playFail();

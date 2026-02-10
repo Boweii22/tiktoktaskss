@@ -13,6 +13,7 @@ export const AlignTask = ({ task, onSuccess, onFail }) => {
   
   const speed = task.config?.speed || 3;
   const windowMs = task.config?.window_ms || 100;
+  const alignThresholdDeg = task.config?.align_threshold_deg ?? 15;
 
   useEffect(() => {
     if (!gameStarted || result) return;
@@ -46,7 +47,7 @@ export const AlignTask = ({ task, onSuccess, onFail }) => {
     
     // Check if aligned (within threshold)
     const diff = Math.abs(position1 - position2);
-    const aligned = diff < 15 || diff > 345; // Close to 0 or 360
+    const aligned = diff < alignThresholdDeg || diff > (360 - alignThresholdDeg);
     
     if (aligned) {
       setResult('success');
@@ -65,7 +66,7 @@ export const AlignTask = ({ task, onSuccess, onFail }) => {
         setResult(null);
       }, 500);
     }
-  }, [gameStarted, position1, position2, onSuccess, onFail]);
+  }, [gameStarted, position1, position2, alignThresholdDeg, onSuccess, onFail]);
 
   // Convert angle to position on circle
   const getPosition = (angle) => {

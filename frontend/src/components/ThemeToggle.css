@@ -1,0 +1,117 @@
+/* Theme orb button */
+.theme-orb {
+  --orb-size: 52px;
+  position: fixed;
+  bottom: max(env(safe-area-inset-bottom), 20px);
+  left: max(env(safe-area-inset-left), 16px);
+  z-index: 9999;
+  width: var(--orb-size);
+  height: var(--orb-size);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  background: var(--theme-orb-bg);
+  color: var(--theme-orb-fg);
+  box-shadow: var(--theme-orb-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow 0.3s ease, background 0.3s ease, color 0.3s ease;
+}
+
+.theme-orb:hover {
+  box-shadow: var(--theme-orb-shadow-hover);
+}
+
+.theme-orb:focus-visible {
+  outline: 2px solid var(--theme-orb-fg);
+  outline-offset: 3px;
+}
+
+.theme-orb__inner {
+  position: relative;
+  width: 56%;
+  height: 56%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-orb__icon {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  inset: 0;
+  margin: auto;
+  transition: opacity 0.35s cubic-bezier(0.33, 1, 0.68, 1);
+  pointer-events: none;
+}
+
+.theme-orb__icon--sun {
+  color: var(--theme-sun-color);
+}
+
+.theme-orb__icon--moon {
+  color: var(--theme-moon-color);
+}
+
+.theme-orb__glow {
+  position: absolute;
+  inset: -20%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    var(--theme-orb-glow) 0%,
+    transparent 70%
+  );
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Expanding portal overlay */
+.theme-portal {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.theme-portal__circle {
+  position: absolute;
+  left: var(--portal-x, 50%);
+  top: var(--portal-y, 50%);
+  width: 200vmax;
+  height: 200vmax;
+  margin-left: -100vmax;
+  margin-top: -100vmax;
+  border-radius: 50%;
+  background: var(--theme-portal-bg);
+  box-shadow: inset 0 0 120px var(--theme-portal-inner-glow);
+  will-change: transform;
+}
+
+.theme-portal__stars {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.theme-portal__star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  animation: theme-star-twinkle 1.2s ease-in-out infinite;
+}
+
+.theme-portal__star:nth-child(odd) {
+  animation-delay: 0.3s;
+}
+
+@keyframes theme-star-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}

@@ -46,7 +46,7 @@ export const TaskCard = ({ task, onSuccess, onFail, localAttempts }) => {
       
       {/* Task name */}
       <div className="absolute top-4 left-4 z-50" style={{ paddingTop: 'env(safe-area-inset-top, 12px)' }}>
-        <h1 className="text-xl font-bold text-slate-900" data-testid="task-name">
+        <h1 className="text-xl font-bold task-name" data-testid="task-name" style={{ color: 'var(--fg-default)' }}>
           {task.name}
         </h1>
       </div>
@@ -177,14 +177,15 @@ export const TaskContainer = ({ initialTaskId = null }) => {
 
   if (loading) {
     return (
-      <div className="task-viewport flex items-center justify-center bg-slate-50" data-testid="loading-container">
+      <div className="task-viewport flex items-center justify-center" style={{ background: 'var(--bg-subtle)' }} data-testid="loading-container">
         <div className="text-center">
           <motion.div
-            className="w-12 h-12 border-2 border-slate-900 border-t-transparent rounded-full mx-auto mb-4"
+            className="w-12 h-12 border-2 border-t-transparent rounded-full mx-auto mb-4"
+            style={{ borderColor: 'var(--fg-default)', borderTopColor: 'transparent' }}
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           />
-          <p className="text-slate-600 font-medium">Loading impossible tasks...</p>
+          <p className="font-medium" style={{ color: 'var(--fg-muted)' }}>Loading impossible tasks...</p>
         </div>
       </div>
     );

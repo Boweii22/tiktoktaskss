@@ -1,6 +1,8 @@
 import React from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { TaskContainer } from "./components/game/TaskContainer";
 import { Toaster } from "./components/ui/sonner";
 
@@ -17,15 +19,18 @@ const TaskView = () => {
 
 function App() {
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<GameView />} />
-          <Route path="/task/:taskId" element={<TaskView />} />
-        </Routes>
-      </BrowserRouter>
-      <Toaster position="top-center" />
-    </div>
+    <ThemeProvider>
+      <div className="App" style={{ background: 'var(--bg-default)' }}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<GameView />} />
+            <Route path="/task/:taskId" element={<TaskView />} />
+          </Routes>
+        </BrowserRouter>
+        <ThemeToggle />
+        <Toaster position="top-center" />
+      </div>
+    </ThemeProvider>
   );
 }
 

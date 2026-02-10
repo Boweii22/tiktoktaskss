@@ -11,13 +11,24 @@ import { ReactionTask } from './tasks/ReactionTask';
 import { HesitationTask } from './tasks/HesitationTask';
 import { PrecisionTask } from './tasks/PrecisionTask';
 import { RapidTapTask } from './tasks/RapidTapTask';
-import { DoubleReactTask } from './tasks/DoubleReactTask';
-import { DoubleTapTask } from './tasks/DoubleTapTask';
-import { DontTapTask } from './tasks/DontTapTask';
-import { ColorReactTask } from './tasks/ColorReactTask';
-import { CountSecondsTask } from './tasks/CountSecondsTask';
-import { OddOneOutTask } from './tasks/OddOneOutTask';
-import { SequenceTapTask } from './tasks/SequenceTapTask';
+import { ColorStopTask } from './tasks/ColorStopTask';
+import { VibrationEndTask } from './tasks/VibrationEndTask';
+import { TapCenterTask } from './tasks/TapCenterTask';
+import { DontBlinkTask } from './tasks/DontBlinkTask';
+import { SwipeStraightTask } from './tasks/SwipeStraightTask';
+import { TapOnceTask } from './tasks/TapOnceTask';
+import { FollowLiteralTask } from './tasks/FollowLiteralTask';
+import { TapNothingTask } from './tasks/TapNothingTask';
+import { TimerZeroTask } from './tasks/TimerZeroTask';
+import { FingerStillTask } from './tasks/FingerStillTask';
+import { DragNoEdgeTask } from './tasks/DragNoEdgeTask';
+import { MatchRhythmTask } from './tasks/MatchRhythmTask';
+import { WaitLongerTask } from './tasks/WaitLongerTask';
+import { OddFrameTask } from './tasks/OddFrameTask';
+import { DontReactTask } from './tasks/DontReactTask';
+import { SwipeSpeedTask } from './tasks/SwipeSpeedTask';
+import { TapSameSpotTask } from './tasks/TapSameSpotTask';
+import { ZeroScoreTask } from './tasks/ZeroScoreTask';
 
 export const taskComponents = {
   timing: HoldTask,
@@ -32,13 +43,24 @@ export const taskComponents = {
   hesitation: HesitationTask,
   precision: PrecisionTask,
   rapid: RapidTapTask,
-  double_react: DoubleReactTask,
-  double_tap: DoubleTapTask,
-  dont_tap: DontTapTask,
-  color_react: ColorReactTask,
-  count_seconds: CountSecondsTask,
-  odd_one_out: OddOneOutTask,
-  sequence_tap: SequenceTapTask
+  color_stop: ColorStopTask,
+  vibration_end: VibrationEndTask,
+  tap_center: TapCenterTask,
+  dont_blink: DontBlinkTask,
+  swipe_straight: SwipeStraightTask,
+  tap_once: TapOnceTask,
+  follow_literal: FollowLiteralTask,
+  tap_nothing: TapNothingTask,
+  timer_zero: TimerZeroTask,
+  finger_still: FingerStillTask,
+  drag_no_edge: DragNoEdgeTask,
+  match_rhythm: MatchRhythmTask,
+  wait_longer: WaitLongerTask,
+  odd_frame: OddFrameTask,
+  dont_react: DontReactTask,
+  swipe_slow: SwipeSpeedTask,
+  tap_same_spot: TapSameSpotTask,
+  zero_score: ZeroScoreTask
 };
 
 export const getTaskComponent = (type) => {
