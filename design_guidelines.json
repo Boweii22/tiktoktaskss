@@ -1,0 +1,122 @@
+{
+  "identity": {
+    "name": "Impossible Tasks",
+    "persona": "The Clinical Deceiver",
+    "vibe": "Calm, Minimalist, Ruthless, Scientific, 'Portal'-esque",
+    "emotional_goal": "Frustration -> Obsession -> Relief -> Pride"
+  },
+  "typography": {
+    "primary": {
+      "family": "Manrope",
+      "weights": ["400", "600", "800"],
+      "usage": "Instructions, UI Labels, Share Text"
+    },
+    "mono": {
+      "family": "JetBrains Mono",
+      "weights": ["400", "700"],
+      "usage": "Timers, Counters, Stats, Data-TestIDs"
+    },
+    "scale": {
+      "h1": "text-4xl md:text-6xl font-extrabold tracking-tighter",
+      "h2": "text-2xl md:text-4xl font-bold tracking-tight",
+      "body": "text-base md:text-lg font-medium leading-relaxed",
+      "caption": "text-xs md:text-sm font-mono uppercase tracking-widest opacity-60"
+    }
+  },
+  "colors": {
+    "palette": {
+      "background": {
+        "default": "#F8FAFC",
+        "subtle": "#F1F5F9",
+        "dark": "#0F172A"
+      },
+      "foreground": {
+        "default": "#0F172A",
+        "muted": "#64748B",
+        "inverse": "#FFFFFF"
+      },
+      "status": {
+        "fail": "#EF4444",
+        "success": "#10B981",
+        "warning": "#F59E0B",
+        "info": "#3B82F6"
+      },
+      "brand": {
+        "primary": "#0F172A",
+        "accent": "#6366F1"
+      }
+    },
+    "usage_rules": [
+      "NEVER use gradients for backgrounds. Flat, clinical colors only.",
+      "Fail state should flash the entire screen red (#EF4444) for 100ms, then return to calm.",
+      "Success state should be a subtle green glow, not a confetti explosion.",
+      "Text must always have high contrast (APCA compliant)."
+    ]
+  },
+  "layout": {
+    "structure": "Full-screen viewport (100dvh). No scrollbars.",
+    "grid": "Single column, vertically stacked tasks.",
+    "spacing": {
+      "container": "p-6 md:p-12",
+      "element_gap": "gap-8"
+    },
+    "z_index": {
+      "task_layer": 10,
+      "ui_overlay": 50,
+      "modal": 100,
+      "toast": 200
+    }
+  },
+  "components": {
+    "TaskContainer": {
+      "path": "src/components/game/TaskContainer.js",
+      "description": "The main swipeable container using Framer Motion. Handles the 'TikTok' logic.",
+      "specs": "Must use AnimatePresence. Swipe threshold: 50px. Spring physics: stiffness 300, damping 30."
+    },
+    "TaskCard": {
+      "path": "src/components/game/TaskCard.js",
+      "description": "The individual task view. Full screen. Contains the specific mini-game.",
+      "specs": "Absolute positioning. Centered content. Minimalist instructions at the top."
+    },
+    "StatsOverlay": {
+      "path": "src/components/game/StatsOverlay.js",
+      "description": "Floating stats (Attempts, Global Pass Rate) in the corner.",
+      "specs": "Top-right or Bottom-right. Monospace font. Small text-xs. Semi-transparent background."
+    },
+    "ShareDialog": {
+      "path": "src/components/game/ShareDialog.js",
+      "description": "Native-feeling share sheet.",
+      "specs": "Use Shadcn Dialog/Drawer. Clean typography. 'Copy Link' button."
+    },
+    "GameEngine": {
+      "path": "src/lib/game-engine.js",
+      "description": "Logic for handling win/fail states, timers, and precision checks.",
+      "specs": "Pure logic. No UI. Returns state objects."
+    }
+  },
+  "motion": {
+    "transitions": {
+      "swipe": "type: 'spring', stiffness: 300, damping: 30",
+      "fail": "duration: 0.1, ease: 'easeInOut'",
+      "success": "duration: 0.5, ease: 'easeOut'"
+    },
+    "micro_interactions": {
+      "hover": "scale: 1.02",
+      "tap": "scale: 0.95",
+      "shake": "x: [0, -10, 10, -10, 10, 0]"
+    }
+  },
+  "assets": {
+    "icons": "Lucide React (already installed). Use: Share2, RefreshCw, Info, X, Check.",
+    "sounds": "Subtle clicks, low-frequency hums for failure, high-pitch ping for success. (Use Web Audio API or simple HTML5 Audio)."
+  },
+  "universal_guidelines": [
+    "Do not use 'Game Over' screens. Reset instantly.",
+    "Instructions must be cryptic but solvable. Example: 'Wait.' instead of 'Wait for 5 seconds'.",
+    "Use 'data-testid' for all interactive elements.",
+    "Ensure 60fps performance. Avoid heavy blurs on mobile.",
+    "Mobile-first: Touch targets must be at least 44px.",
+    "Theme: Light mode default. Clinical, sterile, high-stakes."
+  ],
+  "instructions_to_main_agent": "You are building a 'TikTok for Impossible Tasks'. Focus on the 'feel' of the swipe and the 'tightness' of the game loop. The UI is minimal; the code is complex. Use Framer Motion for everything. The backend is simple: store task IDs, attempts, and completions. Calculate rates on the fly."
+}
