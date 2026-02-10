@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { soundManager } from '../../../lib/sounds';
 
@@ -11,7 +11,7 @@ export const MatchRhythmTask = ({ task, onSuccess, onFail }) => {
   const startTimeRef = useRef(null);
   const timeoutsRef = useRef([]);
 
-  const patternMs = task.config?.pattern_ms ?? [400, 400, 800, 400];
+  const patternMs = useMemo(() => task.config?.pattern_ms ?? [400, 400, 800, 400], [task.config?.pattern_ms]);
   const toleranceMs = task.config?.tolerance_ms ?? 120;
 
   const playPattern = useCallback(() => {

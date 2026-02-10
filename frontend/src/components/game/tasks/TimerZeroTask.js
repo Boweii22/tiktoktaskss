@@ -41,7 +41,7 @@ export const TimerZeroTask = ({ task, onSuccess, onFail }) => {
       }, 800);
     }, 800);
     return () => clearTimeout(t);
-  }, []);
+  }, [windowMs, onFail]);
 
   const handleTap = useCallback(() => {
     soundManager.playClick();
@@ -61,7 +61,7 @@ export const TimerZeroTask = ({ task, onSuccess, onFail }) => {
       soundManager.playFail();
       setTimeout(() => { onFail(); setResult(null); }, 500);
     }
-  }, [windowMs, onSuccess, onFail]);
+  }, [onSuccess, onFail]);
 
   return (
     <div className="flex flex-col items-center justify-center gap-8 w-full" data-testid="timer-zero-task">

@@ -39,7 +39,7 @@ export const ColorStopTask = ({ task, onSuccess, onFail }) => {
       soundManager.playFail();
       setTimeout(() => { onFail(); setResult(null); }, 500);
     }
-  }, [cycleMs, windowMs, windowPhase, staticPhase, onSuccess, onFail]);
+  }, [cycleMs, windowPhase, staticPhase, onSuccess, onFail]);
 
   return (
     <div className="flex flex-col items-center justify-center gap-8 w-full" data-testid="color-stop-task">

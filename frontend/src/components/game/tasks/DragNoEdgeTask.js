@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { soundManager } from '../../../lib/sounds';
 
@@ -10,7 +10,7 @@ export const DragNoEdgeTask = ({ task, onSuccess, onFail }) => {
   const containerRef = useRef(null);
 
   const marginPx = task.config?.margin_px ?? 18;
-  const goal = { x: 252, y: 80 };
+  const goal = useMemo(() => ({ x: 252, y: 80 }), []);
 
   const getPos = (e) => {
     if (e.touches?.length) return { x: e.touches[0].clientX, y: e.touches[0].clientY };

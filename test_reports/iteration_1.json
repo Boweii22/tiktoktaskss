@@ -10,10 +10,10 @@
     "ui_bugs": [
       {
         "component": "ShareDialog",
-        "issue": "Share button not clickable due to Emergent badge overlay interception",
+        "issue": "Share button not clickable due to overlay interception",
         "selector": "[data-testid='share-button']",
         "fix_priority": "MEDIUM",
-        "details": "The 'Made with Emergent' badge (position: x=1726, y=1024) is intercepting pointer events, preventing share button clicks"
+        "details": "An overlay (position: x=1726, y=1024) is intercepting pointer events, preventing share button clicks"
       }
     ],
     "integration_issues": []
@@ -43,7 +43,7 @@
 
   "updated_files": ["/app/backend_test.py"],
 
-  "action_item_for_main_agent": "Fix share button overlay issue: The Emergent badge is intercepting pointer events and preventing the share button from being clickable. Need to adjust z-index or pointer-events CSS for the badge to allow share functionality to work properly.",
+  "action_item_for_main_agent": "Fix share button overlay issue: An overlay is intercepting pointer events and preventing the share button from being clickable. Need to adjust z-index or pointer-events CSS so the share button is clickable.",
 
   "should_call_test_agent_after_fix": "false",
   "should_main_agent_test_itself": "true"
