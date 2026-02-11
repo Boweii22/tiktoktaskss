@@ -14,7 +14,7 @@
 
 ### 1. Backend (FastAPI + Supabase)
 
-- **Supabase**: Create a free project at [supabase.com](https://supabase.com). Run `backend/supabase_schema.sql` in SQL Editor. Set `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` in `backend/.env`.  
+- **Supabase**: Create a free project at [supabase.com](https://supabase.com). Run `backend/supabase_schema.sql`, then `backend/supabase_profiles.sql`, then `backend/supabase_user_tasks.sql` for profiles and user-created tasks. Set `SUPABASE_URL` and `SUPABASE_SERVICE_KEY` in `backend/.env`.  
   If MongoDB isn’t running, the backend still starts; the frontend will use offline fallback tasks when the API fails.
 
 - From the project root:
@@ -94,7 +94,7 @@ After the build finishes, Vercel will give you a URL (e.g. `https://your-project
 
 1. Go to [supabase.com](https://supabase.com), sign in, create a new project (free tier).
 2. In **Project Settings** → **API**, get **Project URL** and **service_role** key. You’ll use the same `SUPABASE_URL` when running the backend locally and when you later deploy the backend (only if the deployed backend can reach your machine, which usually means you need a tunnel or use Atlas).
-3. In **SQL Editor**, paste contents of `backend/supabase_schema.sql` and Run.
+3. In **SQL Editor**, run `backend/supabase_schema.sql`, then `backend/supabase_profiles.sql` (for profiles).
 
 4. Use **Table Editor** to view tables. (Remove old MongoDB text below)  
   1. Go to [supabase.com](https://supabase.com), sign in, create a free cluster.  

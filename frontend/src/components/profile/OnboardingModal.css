@@ -1,0 +1,140 @@
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+}
+
+.onboarding-modal {
+  width: 100%;
+  max-width: 400px;
+  background: var(--bg-default);
+  border-radius: 20px;
+  padding: 32px 28px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .onboarding-modal {
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.12);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+.onboarding-header {
+  margin-bottom: 28px;
+}
+
+.onboarding-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--fg-default);
+  margin-bottom: 6px;
+}
+
+.onboarding-subtitle {
+  font-size: 0.9rem;
+  color: var(--fg-muted);
+}
+
+.onboarding-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.onboarding-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.onboarding-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--fg-default);
+}
+
+.onboarding-field .optional {
+  font-weight: 400;
+  color: var(--fg-muted);
+}
+
+.onboarding-field input,
+.onboarding-field textarea {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--bg-subtle);
+  background: var(--bg-subtle);
+  color: var(--fg-default);
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.onboarding-field input:focus,
+.onboarding-field textarea:focus {
+  outline: none;
+  border-color: var(--brand-accent);
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.2);
+}
+
+[data-theme="light"] .onboarding-field input:focus,
+[data-theme="light"] .onboarding-field textarea:focus {
+  box-shadow: 0 0 0 3px rgba(180, 83, 9, 0.15);
+}
+
+.onboarding-field input::placeholder,
+.onboarding-field textarea::placeholder {
+  color: var(--fg-muted);
+  opacity: 0.7;
+}
+
+.onboarding-hint {
+  font-size: 0.7rem;
+  color: var(--fg-muted);
+}
+
+.onboarding-error {
+  font-size: 0.85rem;
+  color: var(--status-fail);
+}
+
+.onboarding-submit {
+  margin-top: 8px;
+  padding: 14px 24px;
+  border-radius: 12px;
+  border: none;
+  background: var(--brand-accent);
+  color: var(--fg-inverse);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.onboarding-submit:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.onboarding-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.onboarding-skip {
+  margin-top: 12px;
+  padding: 10px;
+  background: none;
+  border: none;
+  color: var(--fg-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.onboarding-skip:hover {
+  color: var(--fg-default);
+}

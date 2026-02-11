@@ -1,0 +1,121 @@
+/* TikTok-style right action bar */
+.action-bar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-right: max(env(safe-area-inset-right), 12px);
+  padding-bottom: max(env(safe-area-inset-bottom), 100px);
+  z-index: 100;
+}
+
+.action-bar__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--fg-default);
+  transition: color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.action-bar__btn:hover {
+  color: var(--brand-accent);
+}
+
+.action-bar__icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+}
+
+.action-bar__count {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+.action-bar__divider {
+  width: 28px;
+  height: 1px;
+  background: var(--fg-muted);
+  opacity: 0.3;
+  margin: 4px 0;
+}
+
+.action-bar__share {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.action-bar__theme {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-bar__theme .theme-orb {
+  position: relative;
+  bottom: auto;
+  left: auto;
+  margin: 4px 0;
+}
+
+/* Heart burst overlay */
+.heart-burst {
+  position: absolute;
+  right: 50%;
+  bottom: 35%;
+  transform: translate(50%, 50%);
+  pointer-events: none;
+  z-index: 200;
+}
+
+/* Responsive: stack horizontally on very small widths */
+@media (max-width: 400px) {
+  .action-bar {
+    flex-direction: row;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: max(env(safe-area-inset-bottom), 12px);
+    top: auto;
+    padding-bottom: max(env(safe-area-inset-bottom), 12px);
+    padding-right: 0;
+    gap: 2px;
+  }
+  .action-bar__btn {
+    flex-direction: row;
+    padding: 6px;
+  }
+  .action-bar__icon-wrap {
+    width: 38px;
+    height: 38px;
+  }
+  .action-bar__count {
+    display: none;
+  }
+  .action-bar__divider {
+    width: 1px;
+    height: 24px;
+    margin: 0 2px;
+  }
+  .action-bar__theme {
+    margin-left: 2px;
+  }
+  .heart-burst {
+    bottom: 45%;
+  }
+}

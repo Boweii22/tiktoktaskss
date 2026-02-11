@@ -2,8 +2,9 @@ import React from "react";
 import "./App.css";
 import { BrowserRouter, Routes, Route, useParams } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { ThemeToggle } from "./components/ThemeToggle";
+import { ProfileProvider } from "./contexts/ProfileContext";
 import { TaskContainer } from "./components/game/TaskContainer";
+import { OnboardingModal } from "./components/profile/OnboardingModal";
 import { Toaster } from "./components/ui/sonner";
 
 // Main game view - loads random task
@@ -20,16 +21,18 @@ const TaskView = () => {
 function App() {
   return (
     <ThemeProvider>
-      <div className="App" style={{ background: 'var(--bg-default)' }}>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<GameView />} />
-            <Route path="/task/:taskId" element={<TaskView />} />
-          </Routes>
-        </BrowserRouter>
-        <ThemeToggle />
-        <Toaster position="top-center" />
-      </div>
+      <ProfileProvider>
+        <div className="App" style={{ background: 'var(--bg-default)' }}>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<GameView />} />
+              <Route path="/task/:taskId" element={<TaskView />} />
+            </Routes>
+          </BrowserRouter>
+          <OnboardingModal />
+          <Toaster position="top-center" />
+        </div>
+      </ProfileProvider>
     </ThemeProvider>
   );
 }

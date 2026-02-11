@@ -38,7 +38,7 @@ const FALLBACK_TASKS = [
 ];
 
 // Generate a session ID for tracking
-const getSessionId = () => {
+export const getSessionId = () => {
   let sessionId = sessionStorage.getItem('impossible_session');
   if (!sessionId) {
     sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -121,6 +121,198 @@ export const api = {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch leaderboard:', error);
+      return [];
+    }
+  },
+
+  // Profile
+  getMyProfile: async () => {
+    if (!API) return null;
+    try {
+      const response = await axios.get(`${API}/profiles/me`, { params: { session_id: getSessionId() } });
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
+  createProfile: async (displayName, username, bio = '') => {
+    if (!API) return null;
+    try {
+      const response = await axios.post(`${API}/profiles`, {
+        session_id: getSessionId(),
+        username: username.trim().toLowerCase().replace(/\s/g, '_'),
+        display_name: displayName.trim(),
+        bio: (bio || '').trim()
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  getProfileByUsername: async (username) => {
+    if (!API) return null;
+    try {
+      const response = await axios.get(`${API}/profiles/username/${encodeURIComponent(username)}`, {
+        params: { session_id: getSessionId() }
+      });
+      return response.data;
+    } catch (error) {
+      return null;
+    }
+  },
+  updateProfile: async (data) => {
+    if (!API) return null;
+    try {
+      const response = await axios.patch(`${API}/profiles/me`, data, {
+        params: { session_id: getSessionId() }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  followProfile: async (username) => {
+    if (!API) return null;
+    try {
+      const response = await axios.post(`${API}/profiles/${encodeURIComponent(username)}/follow`, null, {
+        params: { session_id: getSessionId() }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  unfollowProfile: async (username) => {
+    if (!API) return null;
+    try {
+      const response = await axios.delete(`${API}/profiles/${encodeURIComponent(username)}/follow`, {
+        params: { session_id: getSessionId() }
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Create task
+  createTask: async (name, instruction, type, config = {}) => {
+    if (!API) throw new Error('Backend unavailable');
+    const response = await axios.post(`${API}/tasks`, {
+      session_id: getSessionId(),
+      name: name.trim(),
+      instruction: instruction.trim(),
+      type: (type || 'timing').toLowerCase(),
+      config
+    });
+    return response.data;
+  },
+
+  // Get tasks created by current user
+  getUserTasks: async () => {
+    if (!API) return [];
+    try {
+      const response = await axios.get(`${API}/user-tasks`, { params: { session_id: getSessionId() } });
+      return response.data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  // Get tasks created by a username (for viewing others' profiles)
+  getUserTasksByUsername: async (username) => {
+    if (!API || !username) return [];
+    try {
+      const response = await axios.get(`${API}/user-tasks`, { params: { username } });
+      return response.data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  // Update user-created task (creator only)
+  updateTask: async (taskId, data) => {
+    if (!API) throw new Error('Backend unavailable');
+    const response = await axios.patch(`${API}/tasks/${encodeURIComponent(taskId)}`, data, {
+      params: { session_id: getSessionId() }
+    });
+    return response.data;
+  },
+
+  // Task likes
+  getTaskLikes: async (taskId) => {
+    if (!API) return { count: 0, liked: false };
+    try {
+      const response = await axios.get(`${API}/tasks/${encodeURIComponent(taskId)}/likes`, { params: { session_id: getSessionId() } });
+      return response.data;
+    } catch {
+      return { count: 0, liked: false };
+    }
+  },
+  likeTask: async (taskId) => {
+    if (!API) return { count: 0, liked: false };
+    try {
+      const response = await axios.post(`${API}/tasks/${encodeURIComponent(taskId)}/like`, null, { params: { session_id: getSessionId() } });
+      return response.data;
+    } catch {
+      return { count: 0, liked: false };
+    }
+  },
+  unlikeTask: async (taskId) => {
+    if (!API) return { count: 0, liked: false };
+    try {
+      const response = await axios.delete(`${API}/tasks/${encodeURIComponent(taskId)}/like`, { params: { session_id: getSessionId() } });
+      return response.data;
+    } catch {
+      return { count: 0, liked: false };
+    }
+  },
+
+  // Task comments
+  getTaskComments: async (taskId) => {
+    if (!API) return [];
+    try {
+      const response = await axios.get(`${API}/tasks/${encodeURIComponent(taskId)}/comments`);
+      return response.data || [];
+    } catch {
+      return [];
+    }
+  },
+  addTaskComment: async (taskId, text) => {
+    if (!API) throw new Error('Backend unavailable');
+    const response = await axios.post(`${API}/tasks/${encodeURIComponent(taskId)}/comments`, {
+      session_id: getSessionId(),
+      text
+    });
+    return response.data;
+  },
+
+  // Delete user-created task
+  deleteTask: async (taskId) => {
+    if (!API) throw new Error('Backend unavailable');
+    await axios.delete(`${API}/tasks/${encodeURIComponent(taskId)}`, {
+      params: { session_id: getSessionId() }
+    });
+  },
+
+  // Task submissions (community plugin-style)
+  submitTaskType: async (name, instruction, type, config = {}, notes = '') => {
+    if (!API) throw new Error('Backend unavailable');
+    const response = await axios.post(`${API}/task-submissions`, {
+      session_id: getSessionId(),
+      name: name.trim(),
+      instruction: instruction.trim(),
+      type: (type || 'timing').toLowerCase(),
+      config,
+      notes: (notes || '').trim()
+    });
+    return response.data;
+  },
+  getMySubmissions: async () => {
+    if (!API) return [];
+    try {
+      const response = await axios.get(`${API}/task-submissions`, { params: { session_id: getSessionId() } });
+      return response.data || [];
+    } catch {
       return [];
     }
   }

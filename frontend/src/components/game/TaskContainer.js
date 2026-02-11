@@ -2,12 +2,16 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getTaskComponent } from './taskRegistry';
 import { StatsOverlay } from './StatsOverlay';
-import { ShareDialog } from './ShareDialog';
+import { ActionBar } from './ActionBar';
 import { SwipeHint } from './SwipeHint';
+import { UsernameButton } from '../profile/UsernameButton';
+import { ProfileOverlay } from '../profile/ProfileOverlay';
+import { CreateTaskModal } from '../tasks/CreateTaskModal';
+import { useProfile } from '../../contexts/ProfileContext';
 import { api } from '../../lib/api';
 import { soundManager } from '../../lib/sounds';
 
-export const TaskCard = ({ task, onSuccess, onFail, localAttempts }) => {
+export const TaskCard = ({ task, onSuccess, onFail, localAttempts, onCreatorClick, isCreator, onTaskUpdated, onEditClick, onLikeUpdate }) => {
   const [flashState, setFlashState] = useState(null); // 'success' | 'fail' | null
   
   const TaskComponent = getTaskComponent(task?.type);
@@ -38,60 +42,134 @@ export const TaskCard = ({ task, onSuccess, onFail, localAttempts }) => {
 
   return (
     <motion.div
-      className={`task-card ${flashState === 'fail' ? 'fail-flash' : ''} ${flashState === 'success' ? 'success-glow' : ''}`}
+      className={`task-card task-card--tiktok ${flashState === 'fail' ? 'fail-flash' : ''} ${flashState === 'success' ? 'success-glow' : ''}`}
       data-testid={`task-card-${task.id}`}
     >
-      {/* Stats overlay */}
-      <StatsOverlay task={task} localAttempts={localAttempts} />
-      
-      {/* Task name */}
-      <div className="absolute top-4 left-4 z-50" style={{ paddingTop: 'env(safe-area-inset-top, 12px)' }}>
-        <h1 className="text-xl font-bold task-name" data-testid="task-name" style={{ color: 'var(--fg-default)' }}>
+      {/* Creator (above title) and task name - top left */}
+      <motion.div
+        className="task-card__title"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        {task.created_by_username && (
+          <button
+            type="button"
+            className="task-card__creator task-card__creator--above"
+            onClick={() => onCreatorClick?.(task.created_by_username)}
+          >
+            @{task.created_by_username}
+          </button>
+        )}
+        <h1 className="task-card__title-text" data-testid="task-name">
           {task.name}
         </h1>
-      </div>
-      
-      {/* Task content */}
-      <div className="flex-1 flex items-center justify-center w-full max-w-md mx-auto">
+      </motion.div>
+
+      {/* Task content - center */}
+      <div className="task-card__content">
         <TaskComponent 
           task={task} 
           onSuccess={handleSuccess} 
           onFail={handleFail}
         />
       </div>
-      
-      {/* Share button */}
-      <ShareDialog task={task} />
+
+      {/* Stats - bottom left (TikTok style) */}
+      <StatsOverlay task={task} localAttempts={localAttempts} />
+
+      {/* Action bar - right (like, comment, bookmark, share, theme) */}
+      <ActionBar
+        task={task}
+        isCreator={isCreator}
+        onTaskUpdated={onTaskUpdated}
+        onEditClick={onEditClick}
+        onLikeUpdate={onLikeUpdate}
+      />
     </motion.div>
   );
 };
 
 export const TaskContainer = ({ initialTaskId = null }) => {
+  const { profile } = useProfile();
   const [tasks, setTasks] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [localAttempts, setLocalAttempts] = useState({});
   const [dragY, setDragY] = useState(0);
   const [offline, setOffline] = useState(false);
+  const [profileOverlayOpen, setProfileOverlayOpen] = useState(false);
+  const [profileOverlayUsername, setProfileOverlayUsername] = useState(null);
+  const [editTask, setEditTask] = useState(null);
 
-  // Fetch tasks on mount (uses fallback when backend/DB unavailable)
+  const fetchTasks = useCallback(async () => {
+    const result = await api.getTasks();
+    const taskList = result.tasks ?? result;
+    const list = Array.isArray(taskList) ? taskList : [];
+    setTasks(list);
+    setOffline(Boolean(result.offline));
+    setLoading(false);
+    return list;
+  }, []);
+
   useEffect(() => {
-    const fetchTasks = async () => {
-      const result = await api.getTasks();
-      const taskList = result.tasks ?? result;
-      setTasks(Array.isArray(taskList) ? taskList : []);
-      setOffline(Boolean(result.offline));
-
-      if (initialTaskId && taskList.length > 0) {
+    const run = async () => {
+      setLoading(true);
+      const taskList = await fetchTasks();
+      if (initialTaskId) {
         const idx = taskList.findIndex(t => t.id === initialTaskId);
-        if (idx !== -1) setCurrentIndex(idx);
+        if (idx !== -1) {
+          setCurrentIndex(idx);
+        } else {
+          // User task from direct link — fetch and prepend
+          const task = await api.getTask(initialTaskId);
+          if (task) {
+            const withStats = { ...task, stats: task.stats || { task_id: task.id, attempts: 0, completions: 0, completion_rate: 0 } };
+            setTasks([withStats, ...taskList]);
+            setCurrentIndex(0);
+          }
+        }
       }
-
       setLoading(false);
     };
+    run();
+  }, [initialTaskId, fetchTasks]);
 
-    fetchTasks();
-  }, [initialTaskId]);
+  const handleTaskCreated = useCallback(async (newTask) => {
+    if (!newTask?.id) return;
+    const taskList = await fetchTasks();
+    const idx = taskList.findIndex(t => t.id === newTask.id);
+    if (idx !== -1) {
+      setCurrentIndex(idx);
+    } else {
+      // User-created task not in global list — prepend and show it
+      const withStats = { ...newTask, stats: newTask.stats || { task_id: newTask.id, attempts: 0, completions: 0, completion_rate: 0 } };
+      setTasks([withStats, ...taskList]);
+      setCurrentIndex(0);
+    }
+  }, [fetchTasks]);
+
+  const handleTaskUpdated = useCallback((updatedTask) => {
+    setTasks(prev => prev.map(t => t.id === updatedTask.id ? { ...t, ...updatedTask } : t));
+  }, []);
+
+  const handleLikeUpdate = useCallback((taskId, { liked, count }) => {
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, liked, likeCount: count } : t));
+  }, []);
+
+  const handlePlayTask = useCallback(async (task) => {
+    if (!task?.id) return;
+    const taskList = await fetchTasks();
+    const idx = taskList.findIndex(t => t.id === task.id);
+    if (idx !== -1) {
+      setCurrentIndex(idx);
+    } else {
+      // Profile task not in global list — prepend and show it
+      const withStats = { ...task, stats: task.stats || { task_id: task.id, attempts: 0, completions: 0, completion_rate: 0 } };
+      setTasks([withStats, ...taskList]);
+      setCurrentIndex(0);
+    }
+  }, [fetchTasks]);
 
   // Refresh current task stats periodically (skip when offline)
   useEffect(() => {
@@ -193,6 +271,45 @@ export const TaskContainer = ({ initialTaskId = null }) => {
 
   return (
     <div className="task-viewport relative" data-testid="task-container">
+      <div className="task-viewport__profile-header" style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)' }}>
+        {profile?.username && (
+          <UsernameButton
+            username={profile.username}
+            displayName={profile.display_name}
+            onClick={() => setProfileOverlayOpen(true)}
+          />
+        )}
+      </div>
+      <AnimatePresence>
+        {editTask && (
+          <CreateTaskModal
+            mode="edit"
+            task={editTask}
+            onClose={() => setEditTask(null)}
+            onCreated={(updated) => { handleTaskUpdated(updated); setEditTask(null); }}
+          />
+        )}
+        {profileOverlayOpen && (
+          profileOverlayUsername ? (
+            <ProfileOverlay
+              username={profileOverlayUsername}
+              onClose={() => { setProfileOverlayOpen(false); setProfileOverlayUsername(null); }}
+              onTaskCreated={handleTaskCreated}
+              onPlayTask={handlePlayTask}
+              onTasksRefresh={fetchTasks}
+            />
+          ) : profile?.username && (
+            <ProfileOverlay
+              profile={profile}
+              isOwnProfile
+              onClose={() => setProfileOverlayOpen(false)}
+              onTaskCreated={handleTaskCreated}
+              onPlayTask={handlePlayTask}
+              onTasksRefresh={fetchTasks}
+            />
+          )
+        )}
+      </AnimatePresence>
       {offline && (
         <div className="absolute top-0 left-0 right-0 z-50 py-1.5 px-3 bg-amber-500/90 text-slate-900 text-center text-sm font-medium" style={{ paddingTop: 'max(env(safe-area-inset-top), 6px)' }}>
           Offline mode — play works; stats not saved. Backend unreachable. Check REACT_APP_BACKEND_URL and CORS.
@@ -225,6 +342,11 @@ export const TaskContainer = ({ initialTaskId = null }) => {
               onSuccess={handleSuccess}
               onFail={handleFail}
               localAttempts={localAttempts[currentTask?.id] || 0}
+              onCreatorClick={(un) => { setProfileOverlayUsername(un); setProfileOverlayOpen(true); }}
+              isCreator={!!(profile?.username && currentTask?.created_by_username === profile.username)}
+              onTaskUpdated={handleTaskUpdated}
+              onEditClick={currentTask?.created_by_username ? () => setEditTask(currentTask) : undefined}
+              onLikeUpdate={handleLikeUpdate}
             />
           </motion.div>
         </AnimatePresence>

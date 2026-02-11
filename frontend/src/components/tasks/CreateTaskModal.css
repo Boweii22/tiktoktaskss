@@ -1,0 +1,130 @@
+.create-task-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+}
+
+.create-task-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--bg-default);
+  border-radius: 20px 20px 0 0;
+  padding: 24px;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.25);
+}
+
+@media (min-width: 640px) {
+  .create-task-overlay {
+    align-items: center;
+  }
+  .create-task-modal {
+    border-radius: 20px;
+  }
+}
+
+.create-task-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.create-task-header h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--fg-default);
+}
+
+.create-task-close {
+  padding: 8px;
+  background: var(--bg-subtle);
+  border: none;
+  border-radius: 50%;
+  color: var(--fg-default);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.create-task-close:hover {
+  background: var(--fg-muted);
+  color: var(--fg-inverse);
+}
+
+.create-task-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.create-task-field label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--fg-default);
+  margin-bottom: 6px;
+}
+
+.create-task-field input,
+.create-task-field select,
+.create-task-field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-subtle);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: var(--fg-default);
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.create-task-field input:focus,
+.create-task-field select:focus,
+.create-task-field textarea:focus {
+  outline: none;
+  border-color: var(--brand-accent);
+}
+
+.create-task-field textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.create-task-hint {
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+  margin-top: 6px;
+}
+
+.create-task-error {
+  font-size: 0.9rem;
+  color: var(--status-fail);
+}
+
+.create-task-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 24px;
+  background: var(--brand-accent);
+  color: var(--fg-inverse);
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.create-task-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
