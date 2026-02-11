@@ -2,8 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, APIRouter, HTTPException
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-from pymongo import ReturnDocument
+from supabase import create_client, Client
 import os
 import logging
 from pathlib import Path
@@ -15,17 +14,20 @@ from datetime import datetime, timezone
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection (defaults for local dev)
-mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
-db_name = os.environ.get('DB_NAME', 'impossible_tasks')
-client = AsyncIOMotorClient(mongo_url)
-db = client[db_name]
+# Supabase connection
+supabase_url = os.environ.get('SUPABASE_URL', '').strip()
+supabase_key = (os.environ.get('SUPABASE_SERVICE_KEY', '') or os.environ.get('SUPABASE_KEY', '')).strip()
+supabase: Optional[Client] = None
+if supabase_url and supabase_key:
+    try:
+        supabase = create_client(supabase_url, supabase_key)
+    except Exception as e:
+        logging.warning(f"Supabase init failed: {e}")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
-    client.close()
 
 
 app = FastAPI(lifespan=lifespan)
@@ -267,152 +269,133 @@ class TaskResponse(BaseModel):
     config: dict
     stats: TaskStats
 
+def _get_stats(task_id: str) -> dict:
+    """Get stats for a task from Supabase, or default if not configured."""
+    if not supabase:
+        return {"task_id": task_id, "attempts": 0, "completions": 0, "completion_rate": 0.0}
+    try:
+        r = supabase.table("task_stats").select("task_id,attempts,completions,completion_rate").eq("task_id", task_id).execute()
+        if r.data and len(r.data) > 0:
+            row = r.data[0]
+            return {"task_id": row["task_id"], "attempts": row["attempts"] or 0, "completions": row["completions"] or 0, "completion_rate": float(row["completion_rate"] or 0)}
+    except Exception:
+        pass
+    return {"task_id": task_id, "attempts": 0, "completions": 0, "completion_rate": 0.0}
+
+
+def _get_all_stats() -> list:
+    """Get all task stats from Supabase."""
+    if not supabase:
+        return []
+    try:
+        r = supabase.table("task_stats").select("task_id,attempts,completions,completion_rate").execute()
+        return r.data or []
+    except Exception:
+        return []
+
+
 # Routes
 @api_router.get("/")
-async def root():
+def root():
     return {"message": "Impossible Tasks API"}
 
+@api_router.get("/health")
+def health():
+    """Check if Supabase is connected and working."""
+    ok = supabase is not None
+    detail = "connected" if ok else "not configured (SUPABASE_URL and SUPABASE_SERVICE_KEY required)"
+    if ok:
+        try:
+            r = supabase.table("task_stats").select("task_id").limit(1).execute()
+            detail = f"connected, task_stats ok ({len(r.data or [])} rows)"
+        except Exception as e:
+            detail = f"connected but error: {e}"
+    return {"supabase": ok, "detail": detail}
+
 @api_router.get("/tasks", response_model=List[TaskResponse])
-async def get_tasks():
+def get_tasks():
     """Get all tasks with their stats"""
     tasks_with_stats = []
+    all_stats = {s["task_id"]: s for s in _get_all_stats()}
     for task in TASKS:
-        stats = await db.task_stats.find_one({"task_id": task["id"]}, {"_id": 0})
-        if not stats:
-            stats = {"task_id": task["id"], "attempts": 0, "completions": 0, "completion_rate": 0.0}
-        tasks_with_stats.append({
-            **task,
-            "stats": TaskStats(**stats)
-        })
+        stats = all_stats.get(task["id"]) or {"task_id": task["id"], "attempts": 0, "completions": 0, "completion_rate": 0.0}
+        if "completion_rate" not in stats:
+            stats["completion_rate"] = 0.0
+        tasks_with_stats.append({**task, "stats": TaskStats(**stats)})
     return tasks_with_stats
 
 @api_router.get("/tasks/{task_id}", response_model=TaskResponse)
-async def get_task(task_id: str):
+def get_task(task_id: str):
     """Get a single task with stats"""
     task = next((t for t in TASKS if t["id"] == task_id), None)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    
-    stats = await db.task_stats.find_one({"task_id": task_id}, {"_id": 0})
-    if not stats:
-        stats = {"task_id": task_id, "attempts": 0, "completions": 0, "completion_rate": 0.0}
-    
+    stats = _get_stats(task_id)
     return {**task, "stats": TaskStats(**stats)}
 
 @api_router.post("/tasks/{task_id}/attempt")
-async def record_attempt(task_id: str, data: AttemptCreate):
+def record_attempt(task_id: str, data: AttemptCreate):
     """Record a task attempt"""
     task = next((t for t in TASKS if t["id"] == task_id), None)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    
-    # Update stats
-    result = await db.task_stats.find_one_and_update(
-        {"task_id": task_id},
-        {"$inc": {"attempts": 1}},
-        upsert=True,
-        return_document=ReturnDocument.AFTER,
-        projection={"_id": 0}
-    )
-    
-    # Recalculate completion rate
-    if result:
-        attempts = result.get("attempts", 1)
-        completions = result.get("completions", 0)
-        rate = (completions / attempts * 100) if attempts > 0 else 0
-        await db.task_stats.update_one(
-            {"task_id": task_id},
-            {"$set": {"completion_rate": round(rate, 2)}}
-        )
-    
-    # Log individual attempt
-    await db.attempts.insert_one({
-        "id": str(uuid.uuid4()),
-        "task_id": task_id,
-        "session_id": data.session_id,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "completed": False
-    })
-    
+    if not supabase:
+        return {"status": "recorded", "task_id": task_id}
+    try:
+        supabase.rpc("increment_attempt", {"p_task_id": task_id}).execute()
+        supabase.table("attempts").insert({
+            "task_id": task_id,
+            "session_id": data.session_id,
+            "completed": False
+        }).execute()
+    except Exception as e:
+        logging.warning(f"record_attempt: {e}")
     return {"status": "recorded", "task_id": task_id}
 
 @api_router.post("/tasks/{task_id}/complete")
-async def record_completion(task_id: str, data: CompletionCreate):
+def record_completion(task_id: str, data: CompletionCreate):
     """Record a task completion"""
     task = next((t for t in TASKS if t["id"] == task_id), None)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    
-    # Update stats (completion also counts as one attempt)
-    result = await db.task_stats.find_one_and_update(
-        {"task_id": task_id},
-        {"$inc": {"attempts": 1, "completions": 1}},
-        upsert=True,
-        return_document=ReturnDocument.AFTER,
-        projection={"_id": 0}
-    )
-    
-    # Recalculate completion rate
-    if result:
-        attempts = result.get("attempts", 1)
-        completions = result.get("completions", 1)
-        rate = (completions / attempts * 100) if attempts > 0 else 100
-        await db.task_stats.update_one(
-            {"task_id": task_id},
-            {"$set": {"completion_rate": round(rate, 2)}}
-        )
-    
-    # Log completion
-    await db.completions.insert_one({
-        "id": str(uuid.uuid4()),
-        "task_id": task_id,
-        "session_id": data.session_id,
-        "time_taken": data.time_taken,
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    })
-    
-    # Get updated stats
-    updated_stats = await db.task_stats.find_one({"task_id": task_id}, {"_id": 0})
-    
-    return {
-        "status": "completed",
-        "task_id": task_id,
-        "stats": updated_stats
-    }
+    if not supabase:
+        return {"status": "completed", "task_id": task_id, "stats": {"task_id": task_id, "attempts": 0, "completions": 0, "completion_rate": 0.0}}
+    try:
+        supabase.rpc("increment_completion", {"p_task_id": task_id}).execute()
+        supabase.table("completions").insert({
+            "task_id": task_id,
+            "session_id": data.session_id,
+            "time_taken": data.time_taken
+        }).execute()
+        stats = _get_stats(task_id)
+        return {"status": "completed", "task_id": task_id, "stats": stats}
+    except Exception as e:
+        print(f"[record_completion ERROR] {e}")
+        logging.exception("record_completion failed")
+        return {"status": "completed", "task_id": task_id, "stats": _get_stats(task_id)}
 
 @api_router.get("/tasks/{task_id}/stats", response_model=TaskStats)
-async def get_task_stats(task_id: str):
+def get_task_stats(task_id: str):
     """Get stats for a specific task"""
-    stats = await db.task_stats.find_one({"task_id": task_id}, {"_id": 0})
-    if not stats:
-        return TaskStats(task_id=task_id)
-    return TaskStats(**stats)
+    return TaskStats(**_get_stats(task_id))
 
 @api_router.get("/leaderboard")
-async def get_leaderboard():
+def get_leaderboard():
     """Get tasks sorted by difficulty (lowest completion rate)"""
-    all_stats = await db.task_stats.find({}, {"_id": 0}).to_list(100)
-    
-    # Merge with task info
+    all_stats = _get_all_stats()
+    stats_map = {s["task_id"]: s for s in all_stats}
     leaderboard = []
     for task in TASKS:
-        stats = next((s for s in all_stats if s["task_id"] == task["id"]), None)
+        stats = stats_map.get(task["id"])
         if stats:
             leaderboard.append({
                 "task_id": task["id"],
                 "name": task["name"],
-                "completion_rate": stats.get("completion_rate", 0),
-                "attempts": stats.get("attempts", 0)
+                "completion_rate": float(stats.get("completion_rate") or 0),
+                "attempts": stats.get("attempts") or 0
             })
         else:
-            leaderboard.append({
-                "task_id": task["id"],
-                "name": task["name"],
-                "completion_rate": 0,
-                "attempts": 0
-            })
-    
-    # Sort by completion rate (hardest first)
+            leaderboard.append({"task_id": task["id"], "name": task["name"], "completion_rate": 0, "attempts": 0})
     leaderboard.sort(key=lambda x: x["completion_rate"])
     return leaderboard
 
