@@ -52,10 +52,10 @@ export const api = {
   getTasks: async () => {
     if (!API) return { tasks: FALLBACK_TASKS, offline: true };
     try {
-      const response = await axios.get(`${API}/tasks`, { timeout: 5000 });
+      const response = await axios.get(`${API}/tasks`, { timeout: 25000 });
       return { tasks: response.data, offline: false };
     } catch (error) {
-      console.warn('Backend unavailable, using offline tasks. Start backend + MongoDB for stats.', error?.message || error);
+      console.warn('Backend unavailable, using offline tasks. Check REACT_APP_BACKEND_URL and CORS.', error?.message || error);
       return { tasks: FALLBACK_TASKS, offline: true };
     }
   },

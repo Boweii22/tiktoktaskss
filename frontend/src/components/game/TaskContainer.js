@@ -195,7 +195,7 @@ export const TaskContainer = ({ initialTaskId = null }) => {
     <div className="task-viewport relative" data-testid="task-container">
       {offline && (
         <div className="absolute top-0 left-0 right-0 z-50 py-1.5 px-3 bg-amber-500/90 text-slate-900 text-center text-sm font-medium" style={{ paddingTop: 'max(env(safe-area-inset-top), 6px)' }}>
-          Offline mode — play works; stats not saved. Start backend + MongoDB for global stats.
+          Offline mode — play works; stats not saved. Backend unreachable. Check REACT_APP_BACKEND_URL and CORS.
         </div>
       )}
       <motion.div

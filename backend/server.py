@@ -402,8 +402,9 @@ def get_leaderboard():
 # Include router
 app.include_router(api_router)
 
-# CORS: with allow_credentials=True, browser rejects "*". Default to common dev origins.
+# CORS: with allow_credentials=True, browser rejects "*". Always allow Vercel + localhost.
 _default_origins = [
+    "https://tiktoktaskss.vercel.app",
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:3002",
@@ -414,7 +415,8 @@ _default_origins = [
     "http://127.0.0.1:3003",
 ]
 _cors_origins_env = os.environ.get("CORS_ORIGINS", "").strip()
-cors_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()] if _cors_origins_env else _default_origins
+_env_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
+cors_origins = list(dict.fromkeys((_env_origins or _default_origins) + _default_origins))
 
 app.add_middleware(
     CORSMiddleware,
