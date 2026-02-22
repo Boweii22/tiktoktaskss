@@ -33,8 +33,10 @@ export function CreateTaskModal({ onClose, onCreated, mode = 'create', task: edi
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
-    if (isPropose && !SUBMISSION_TYPES.includes(taskType)) setTaskType('timing');
-  }, [isPropose, taskType]);
+    if (isPropose) {
+      setTaskType(prev => (SUBMISSION_TYPES.includes(prev) ? prev : 'timing'));
+    }
+  }, [isPropose]);
 
   const getConfig = () => {
     if (taskType === 'follow_literal') {

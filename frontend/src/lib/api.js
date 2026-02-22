@@ -37,12 +37,24 @@ const FALLBACK_TASKS = [
   { id: 'zero_score', name: 'Zero Score', instruction: 'Every tap increases score. You must end with exactly zero.', type: 'zero_score', config: {}, stats: { task_id: 'zero_score', attempts: 0, completions: 0, completion_rate: 0 } }
 ];
 
-// Generate a session ID for tracking
+// Session ID: use localStorage so profile survives browser close. Migrate from sessionStorage if present.
+const SESSION_KEY = 'impossible_session';
 export const getSessionId = () => {
-  let sessionId = sessionStorage.getItem('impossible_session');
-  if (!sessionId) {
-    sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    sessionStorage.setItem('impossible_session', sessionId);
+  let sessionId = null;
+  try {
+    sessionId = localStorage.getItem(SESSION_KEY);
+    if (!sessionId) sessionId = sessionStorage.getItem(SESSION_KEY);
+    if (sessionId) {
+      localStorage.setItem(SESSION_KEY, sessionId);
+      try { sessionStorage.removeItem(SESSION_KEY); } catch (_) {}
+    }
+    if (!sessionId) {
+      sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem(SESSION_KEY, sessionId);
+    }
+  } catch (e) {
+    sessionId = sessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    try { sessionStorage.setItem(SESSION_KEY, sessionId); } catch (_) {}
   }
   return sessionId;
 };
@@ -144,6 +156,20 @@ export const api = {
         display_name: displayName.trim(),
         bio: (bio || '').trim()
       });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  /** Recover an existing profile on this device by username (e.g. after new browser or cleared data). */
+  claimProfile: async (username) => {
+    if (!API) return null;
+    try {
+      const response = await axios.post(
+        `${API}/profiles/claim`,
+        { username: (username || '').trim().toLowerCase().replace(/\s/g, '_') },
+        { params: { session_id: getSessionId() } }
+      );
       return response.data;
     } catch (error) {
       throw error;

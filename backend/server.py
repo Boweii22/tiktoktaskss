@@ -273,6 +273,9 @@ class ProfileUpdate(BaseModel):
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
 
+class ProfileClaim(BaseModel):
+    username: str
+
 class TaskCreate(BaseModel):
     session_id: str
     name: str
@@ -928,6 +931,32 @@ def get_my_profile(session_id: str = ""):
     return None
 
 
+@api_router.post("/profiles/claim")
+def claim_profile(data: ProfileClaim, session_id: str = ""):
+    """Recover an existing profile on this device by username (e.g. after new browser or cleared data).
+    Links that profile to the current session_id so this device becomes 'logged in' as that user."""
+    if not supabase or not session_id:
+        raise HTTPException(status_code=401, detail="Session required")
+    username_clean = (data.username or "").strip().lower().replace(" ", "_")[:30]
+    if not username_clean:
+        raise HTTPException(status_code=400, detail="Username required")
+    try:
+        r = supabase.table("profiles").select("*").eq("username", username_clean).execute()
+        if not r.data or len(r.data) == 0:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        row = r.data[0]
+        supabase.table("profiles").update({
+            "session_id": session_id,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }).eq("id", row["id"]).execute()
+        return _profile_row_to_dict({**row, "session_id": session_id}, include_tasks_created=True)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.exception(f"claim_profile: {e}")
+        raise HTTPException(status_code=500, detail="Failed to claim profile")
+
+
 @api_router.get("/profiles/username/{username}")
 def get_profile_by_username(username: str, session_id: str = ""):
     """Get profile by username. Optionally include is_following if session_id provided."""
@@ -1040,7 +1069,7 @@ def unfollow_profile(username: str, session_id: str = ""):
 # Include router
 app.include_router(api_router)
 
-# CORS: with allow_credentials=True, browser rejects "*". Always allow Vercel + localhost.
+# CORS: with allow_credentials=True, browser rejects "*". Allow Vercel + localhost + LAN for dev.
 _default_origins = [
     "https://tiktoktaskss.vercel.app",
     "http://localhost:3000",
@@ -1052,6 +1081,10 @@ _default_origins = [
     "http://127.0.0.1:3002",
     "http://127.0.0.1:3003",
 ]
+# Allow any local / LAN origin (any port) so dev works from different browsers and network URL
+_cors_origin_regex = (
+    r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+)?$"
+)
 _cors_origins_env = os.environ.get("CORS_ORIGINS", "").strip()
 _env_origins = [o.strip() for o in _cors_origins_env.split(",") if o.strip()]
 cors_origins = list(dict.fromkeys((_env_origins or _default_origins) + _default_origins))
@@ -1060,6 +1093,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
     allow_origins=cors_origins,
+    allow_origin_regex=_cors_origin_regex,
     allow_methods=["*"],
     allow_headers=["*"],
 )

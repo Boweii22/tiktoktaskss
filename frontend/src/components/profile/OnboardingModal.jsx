@@ -6,12 +6,16 @@ import { toast } from 'sonner';
 import './OnboardingModal.css';
 
 export function OnboardingModal() {
-  const { createProfile, onboardingComplete, skipOnboarding } = useProfile();
+  const { createProfile, refreshProfile, onboardingComplete, skipOnboarding, setProfile, setOnboardingComplete } = useProfile();
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [showRecover, setShowRecover] = useState(false);
+  const [recoverUsername, setRecoverUsername] = useState('');
+  const [recoverSubmitting, setRecoverSubmitting] = useState(false);
+  const [recoverError, setRecoverError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,6 +53,32 @@ export function OnboardingModal() {
     .toLowerCase()
     .replace(/\s+/g, '_')
     .replace(/[^a-z0-9_]/g, '');
+
+  const handleRecover = async (e) => {
+    e.preventDefault();
+    setRecoverError('');
+    const un = (recoverUsername || '').trim().toLowerCase().replace(/\s/g, '_');
+    if (!un || un.length < 2) {
+      setRecoverError('Enter your username (at least 2 characters)');
+      return;
+    }
+    setRecoverSubmitting(true);
+    try {
+      const p = await api.claimProfile(un);
+      if (p) {
+        await refreshProfile();
+        toast.success('Profile recovered! Welcome back.');
+        setShowRecover(false);
+        setRecoverUsername('');
+      }
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.message || 'Profile not found or backend unavailable';
+      setRecoverError(typeof msg === 'string' ? msg : 'Recover failed');
+      toast.error(typeof msg === 'string' ? msg : 'Recover failed');
+    } finally {
+      setRecoverSubmitting(false);
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -123,6 +153,31 @@ export function OnboardingModal() {
               >
                 Skip for now
               </button>
+              <div className="onboarding-recover">
+                <button
+                  type="button"
+                  className="onboarding-recover-toggle"
+                  onClick={() => { setShowRecover(!showRecover); setRecoverError(''); setRecoverUsername(''); }}
+                >
+                  {showRecover ? 'Hide' : 'Already have a profile? Recover by username'}
+                </button>
+                {showRecover && (
+                  <form onSubmit={handleRecover} className="onboarding-recover-form">
+                    <input
+                      type="text"
+                      placeholder="Your username"
+                      value={recoverUsername}
+                      onChange={(e) => setRecoverUsername(e.target.value.toLowerCase().replace(/\s/g, '_'))}
+                      maxLength={30}
+                      className="onboarding-recover-input"
+                    />
+                    {recoverError && <p className="onboarding-error">{recoverError}</p>}
+                    <button type="submit" className="onboarding-submit" disabled={recoverSubmitting}>
+                      {recoverSubmitting ? 'Recovering...' : 'Recover profile'}
+                    </button>
+                  </form>
+                )}
+              </div>
             </form>
           </motion.div>
         </motion.div>

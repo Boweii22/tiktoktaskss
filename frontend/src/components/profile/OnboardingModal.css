@@ -138,3 +138,38 @@
 .onboarding-skip:hover {
   color: var(--fg-default);
 }
+
+.onboarding-recover {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--bg-subtle);
+}
+
+.onboarding-recover-toggle {
+  padding: 8px 0;
+  background: none;
+  border: none;
+  color: var(--fg-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.onboarding-recover-toggle:hover {
+  color: var(--brand-accent);
+}
+
+.onboarding-recover-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.onboarding-recover-input {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--bg-subtle);
+  background: var(--bg-subtle);
+  color: var(--fg-default);
+  font-size: 0.95rem;
+}

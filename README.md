@@ -23,6 +23,7 @@
   pip install -r requirements.txt
   python -m uvicorn server:app --reload --host 0.0.0.0 --port 8000
   ```
+  **Windows PowerShell (quick start):** from project root run `.\backend\run_backend.ps1` to install deps if needed and start the server.
   API base: **http://localhost:8000** (e.g. http://localhost:8000/api/tasks).
 
 ### 2. Frontend (React)
@@ -44,7 +45,14 @@
   ```
   (Windows PowerShell: `$env:PORT=3002; npm start`)
 
-- Open **http://localhost:3000** (or the port shown in the terminal).
+- Open **http://localhost:3000** (or the port shown in the terminal).  
+  **Important:** If you change `frontend/.env`, restart `npm start` so React picks up the new `REACT_APP_BACKEND_URL`.
+
+### Troubleshooting: "Offline mode — Backend unreachable"
+
+- **Backend must be running.** Start it first (see Backend step above or `.\backend\run_backend.ps1` on Windows). The frontend calls `http://localhost:8000` by default.
+- **Check `frontend/.env`** contains `REACT_APP_BACKEND_URL=http://localhost:8000` (no trailing slash). Restart the frontend after changing `.env`.
+- **CORS:** The backend allows localhost and LAN origins on any port. If you use a different backend URL, set `CORS_ORIGINS` in `backend/.env` (e.g. `CORS_ORIGINS=http://localhost:3002,http://127.0.0.1:3002`).
 
 ### 3. Optional: run backend tests
 
