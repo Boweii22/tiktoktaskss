@@ -102,7 +102,7 @@ After the build finishes, Vercel will give you a URL (e.g. `https://your-project
 
 1. Go to [supabase.com](https://supabase.com), sign in, create a new project (free tier).
 2. In **Project Settings** → **API**, get **Project URL** and **service_role** key. You’ll use the same `SUPABASE_URL` when running the backend locally and when you later deploy the backend (only if the deployed backend can reach your machine, which usually means you need a tunnel or use Atlas).
-3. In **SQL Editor**, run `backend/supabase_schema.sql`, then `backend/supabase_profiles.sql` (for profiles).
+3. In **SQL Editor**, run `backend/supabase_schema.sql`, then `backend/supabase_profiles.sql` (for profiles). If you already had profiles and want the streak counter, run `backend/supabase_streak_migration.sql` to add streak columns.
 
 4. Use **Table Editor** to view tables. (Remove old MongoDB text below)  
   1. Go to [supabase.com](https://supabase.com), sign in, create a free cluster.  

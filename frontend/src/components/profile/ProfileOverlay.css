@@ -373,8 +373,31 @@
   color: var(--status-success, #22c55e);
 }
 
-.profile-overlay__task-status--reviewed_rejected {
+.profile-overlay__task-status--reviewed_rejected,
+.profile-overlay__task-status--rejected {
   color: var(--status-fail, #ef4444);
+}
+
+.profile-overlay__task-status--reviewing {
+  color: #f59e0b;
+}
+
+.profile-overlay__task-status--implemented {
+  color: var(--status-success, #22c55e);
+}
+
+.profile-overlay__proposal-img {
+  margin-top: 6px;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 120px;
+  max-height: 80px;
+}
+
+.profile-overlay__proposal-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .profile-overlay__task-actions {

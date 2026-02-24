@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Users, Layers, Heart, X, UserPlus, UserCheck, Bookmark, Plus, Trash2, Play } from 'lucide-react';
+import { User, Users, Layers, Heart, X, UserPlus, UserCheck, Bookmark, Plus } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useProfile } from '../../contexts/ProfileContext';
-import { CreateTaskModal } from '../tasks/CreateTaskModal';
+import { ProposeIdeaModal } from '../tasks/ProposeIdeaModal';
 import { toast } from 'sonner';
 import './ProfileOverlay.css';
 
@@ -20,33 +20,23 @@ export function ProfileOverlay({ profile: initialProfile, username, onClose, isO
   const [following, setFollowing] = useState(initialProfile?.is_following ?? false);
   const [followCount, setFollowCount] = useState(initialProfile?.followers_count ?? 0);
   const [activeTab, setActiveTab] = useState('tasks');
-  const [createTaskOpen, setCreateTaskOpen] = useState(false);
-  const [createTaskMode, setCreateTaskMode] = useState('create'); // 'create' | 'propose'
-  const [userTasks, setUserTasks] = useState([]);
-  const [userTasksLoading, setUserTasksLoading] = useState(false);
-  const [mySubmissions, setMySubmissions] = useState([]);
+  const [proposeOpen, setProposeOpen] = useState(false);
+  const [proposals, setProposals] = useState([]);
+  const [proposalsLoading, setProposalsLoading] = useState(false);
 
-  const fetchUserTasks = useCallback(async () => {
-    setUserTasksLoading(true);
-    const list = isOwnProfile
-      ? await api.getUserTasks()
-      : (profile?.username ? await api.getUserTasksByUsername(profile.username) : []);
-    setUserTasks(list || []);
-    setUserTasksLoading(false);
-  }, [isOwnProfile, profile?.username]);
-
-  const fetchMySubmissions = useCallback(async () => {
-    if (!isOwnProfile) return;
-    const list = await api.getMySubmissions();
-    setMySubmissions(list || []);
-  }, [isOwnProfile]);
+  const fetchProposals = useCallback(async () => {
+    if (!profile?.username) return;
+    setProposalsLoading(true);
+    const list = await api.getCommunityProposals(profile.username);
+    setProposals(list || []);
+    setProposalsLoading(false);
+  }, [profile?.username]);
 
   useEffect(() => {
-    if (activeTab === 'tasks') {
-      fetchUserTasks();
-      if (isOwnProfile) fetchMySubmissions();
+    if (activeTab === 'tasks' && profile?.username) {
+      fetchProposals();
     }
-  }, [activeTab, fetchUserTasks, fetchMySubmissions, isOwnProfile]);
+  }, [activeTab, fetchProposals, profile?.username]);
 
   // Refresh profile stats (including likes_received) every 3s so likes update immediately
   const refreshProfileStats = useCallback(async () => {
@@ -64,16 +54,6 @@ export function ProfileOverlay({ profile: initialProfile, username, onClose, isO
     return () => clearInterval(interval);
   }, [refreshProfileStats]);
 
-  const handleDeleteTask = async (taskId) => {
-    try {
-      await api.deleteTask(taskId);
-      toast.success('Task deleted');
-      fetchUserTasks();
-      onTasksRefresh?.();
-    } catch (e) {
-      toast.error('Failed to delete');
-    }
-  };
 
   useEffect(() => {
     if (username && !initialProfile) {
@@ -132,11 +112,11 @@ export function ProfileOverlay({ profile: initialProfile, username, onClose, isO
     return null;
   }
 
-  const tasksCreatedCount = profile.tasks_created ?? userTasks.length;
+  const proposalsCount = proposals.length;
   const stats = [
     { label: 'Followers', value: followCount, icon: Users },
     { label: 'Following', value: profile.following_count ?? 0, icon: UserCheck },
-    { label: 'Tasks', value: tasksCreatedCount, icon: Layers },
+    { label: 'Proposals', value: proposalsCount, icon: Layers },
     { label: 'Likes', value: profile.likes_received ?? 0, icon: Heart },
   ];
 
@@ -237,87 +217,53 @@ export function ProfileOverlay({ profile: initialProfile, username, onClose, isO
                     <div className="profile-overlay__games-badge">
                       <Layers size={32} />
                       <span className="profile-overlay__games-count">
-                        {tasksCreatedCount.toLocaleString()}
+                        {proposalsCount.toLocaleString()}
                       </span>
-                      <span className="profile-overlay__games-label">tasks created</span>
+                      <span className="profile-overlay__games-label">proposals</span>
                     </div>
                     <p className="profile-overlay__tab-hint">
-                      {isOwnProfile ? 'Create tasks and share them with others' : `Tasks created by @${profile.username}`}
+                      {isOwnProfile ? 'Propose ideas for community tasks' : `Proposals by @${profile.username}`}
                     </p>
                     {isOwnProfile && (
-                      <>
-                        <div className="profile-overlay__create-buttons">
-                          <motion.button
-                            type="button"
-                            className="profile-overlay__create-task"
-                            onClick={() => { setCreateTaskMode('create'); setCreateTaskOpen(true); }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                          >
-                            <Plus size={18} />
-                            Create task
-                          </motion.button>
-                          <motion.button
-                            type="button"
-                            className="profile-overlay__create-task profile-overlay__create-task--secondary"
-                            onClick={() => { setCreateTaskMode('propose'); setCreateTaskOpen(true); }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                          >
-                            Propose for community
-                          </motion.button>
-                        </div>
-                        {userTasksLoading ? (
-                          <p className="profile-overlay__tab-hint">Loading your tasks...</p>
-                        ) : userTasks.length > 0 ? (
-                          <div className="profile-overlay__my-tasks">
-                            <p className="profile-overlay__my-tasks-title">Your tasks</p>
-                            {userTasks.map((t) => (
-                              <div key={t.id} className="profile-overlay__task-row">
-                                <div className="profile-overlay__task-info">
-                                  <span className="profile-overlay__task-name">{t.name}</span>
-                                  <span className="profile-overlay__task-instruction">{t.instruction?.slice(0, 50)}{(t.instruction?.length || 0) > 50 ? '…' : ''}</span>
-                                </div>
-                                <div className="profile-overlay__task-actions">
-                                  <button
-                                    type="button"
-                                    className="profile-overlay__task-play"
-                                    onClick={() => { onPlayTask?.(t); onClose?.(); }}
-                                    aria-label="Play"
-                                  >
-                                    <Play size={18} />
-                                  </button>
-                                  {isOwnProfile && (
-                                    <button
-                                      type="button"
-                                      className="profile-overlay__task-delete"
-                                      onClick={() => handleDeleteTask(t.id)}
-                                      aria-label="Delete"
-                                    >
-                                      <Trash2 size={18} />
-                                    </button>
-                                  )}
-                                </div>
+                      <div className="profile-overlay__create-buttons">
+                        <motion.button
+                          type="button"
+                          className="profile-overlay__create-task"
+                          onClick={() => setProposeOpen(true)}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <Plus size={18} />
+                          Propose for community
+                        </motion.button>
+                      </div>
+                    )}
+                    {proposalsLoading ? (
+                      <p className="profile-overlay__tab-hint">Loading proposals...</p>
+                    ) : proposals.length > 0 ? (
+                      <div className="profile-overlay__my-tasks">
+                        <p className="profile-overlay__my-tasks-title">Your proposals</p>
+                        {proposals.map((p) => (
+                          <div key={p.id} className="profile-overlay__task-row">
+                            <div className="profile-overlay__task-info">
+                              <span className="profile-overlay__task-name">{p.title || 'Idea'}</span>
+                              <span className="profile-overlay__task-instruction">{p.idea_text?.slice(0, 80)}{(p.idea_text?.length || 0) > 80 ? '…' : ''}</span>
+                              <span className={`profile-overlay__task-status profile-overlay__task-status--${p.status}`}>
+                                {p.status === 'pending' ? 'Pending' : p.status === 'reviewing' ? 'In review' : 'Implemented'}
+                              </span>
+                            </div>
+                            {p.image_url && (
+                              <div className="profile-overlay__proposal-img">
+                                <img src={p.image_url} alt="" />
                               </div>
-                            ))}
+                            )}
                           </div>
-                        ) : null}
-                        {mySubmissions.length > 0 && (
-                          <div className="profile-overlay__my-tasks" style={{ marginTop: 16 }}>
-                            <p className="profile-overlay__my-tasks-title">Community submissions</p>
-                            {mySubmissions.map((s) => (
-                              <div key={s.id} className="profile-overlay__task-row">
-                                <div className="profile-overlay__task-info">
-                                  <span className="profile-overlay__task-name">{s.name}</span>
-                                  <span className={`profile-overlay__task-status profile-overlay__task-status--${s.status}`}>
-                                    {s.status === 'pending' ? 'Pending review' : s.status === 'approved' ? 'Approved' : 'Rejected'}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </>
+                        ))}
+                      </div>
+                    ) : isOwnProfile ? (
+                      <p className="profile-overlay__tab-hint">No proposals yet. Post an idea above!</p>
+                    ) : (
+                      <p className="profile-overlay__tab-hint">No proposals yet.</p>
                     )}
                   </div>
                 </motion.div>
@@ -367,17 +313,12 @@ export function ProfileOverlay({ profile: initialProfile, username, onClose, isO
       </motion.div>
 
       <AnimatePresence>
-        {createTaskOpen && (
-          <CreateTaskModal
-            mode={createTaskMode}
-            onClose={() => setCreateTaskOpen(false)}
-            onCreated={(task) => {
-              if (createTaskMode === 'propose') fetchMySubmissions();
-              else {
-                onTaskCreated?.(task);
-                fetchUserTasks();
-              }
-              setCreateTaskOpen(false);
+        {proposeOpen && (
+          <ProposeIdeaModal
+            onClose={() => setProposeOpen(false)}
+            onPosted={() => {
+              fetchProposals();
+              setProposeOpen(false);
             }}
           />
         )}

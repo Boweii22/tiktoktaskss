@@ -1,0 +1,217 @@
+.admin-page {
+  min-height: 100vh;
+  background: var(--bg-default);
+  padding: 32px 24px;
+  max-width: 860px;
+  margin: 0 auto;
+  color: var(--fg-default);
+  font-family: inherit;
+}
+
+.admin-page--center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 16px;
+  padding-top: 15vh;
+}
+
+.admin-session-id {
+  font-size: 0.8rem;
+  background: var(--bg-subtle);
+  padding: 8px 14px;
+  border-radius: 8px;
+  word-break: break-all;
+}
+
+.admin-spinner {
+  animation: spin 1s linear infinite;
+  color: var(--fg-muted);
+}
+
+.admin-spinner--sm {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.admin-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.admin-title {
+  font-size: 1.6rem;
+  font-weight: 900;
+  margin: 0 0 4px;
+}
+
+.admin-subtitle {
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+  margin: 0;
+}
+
+.admin-refresh {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--bg-subtle);
+  border: none;
+  border-radius: 10px;
+  color: var(--fg-default);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-refresh:hover { opacity: 0.85; }
+
+.admin-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.admin-filter {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--bg-subtle);
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.admin-filter--active,
+.admin-filter:hover {
+  background: var(--brand-accent);
+  color: var(--fg-inverse);
+  border-color: var(--brand-accent);
+}
+
+.admin-empty {
+  text-align: center;
+  color: var(--fg-muted);
+  padding: 48px 0;
+  font-size: 1rem;
+}
+
+.admin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-card {
+  background: var(--bg-subtle);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+[data-theme="light"] .admin-card {
+  border-color: rgba(0,0,0,0.06);
+}
+
+.admin-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-card__user {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--brand-accent);
+}
+
+.admin-card__date {
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+}
+
+.admin-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.admin-card__badge--pending     { background: rgba(156,163,175,0.2); color: #9ca3af; }
+.admin-card__badge--reviewing   { background: rgba(251,191,36,0.15); color: #f59e0b; }
+.admin-card__badge--implemented { background: rgba(34,197,94,0.15);  color: #22c55e; }
+
+.admin-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-action:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.admin-action--reviewing   { background: rgba(251,191,36,0.2); color: #f59e0b; }
+.admin-action--implemented { background: rgba(34,197,94,0.2);  color: #22c55e; }
+.admin-action--pending     { background: var(--bg-default);    color: var(--fg-muted); }
+
+.admin-card__title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin: 0 0 8px;
+  color: var(--fg-default);
+}
+
+.admin-card__idea {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--fg-default);
+  margin: 0 0 12px;
+  white-space: pre-wrap;
+}
+
+.admin-card__img {
+  border-radius: 10px;
+  overflow: hidden;
+  max-width: 320px;
+  max-height: 200px;
+}
+
+.admin-card__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

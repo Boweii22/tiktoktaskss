@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageCircle, Bookmark, Share2, Pencil } from 'lucide-react';
+import { Heart, MessageCircle, Bookmark, Share2 } from 'lucide-react';
 import { ThemeToggle } from '../ThemeToggle';
 import { ShareDialog } from './ShareDialog';
 import { CommentsDrawer } from './CommentsDrawer';
@@ -24,7 +24,7 @@ const ActionButton = ({ icon: Icon, label, count, onClick, isActive, activeColor
   </motion.button>
 );
 
-export const ActionBar = ({ task, isCreator, onTaskUpdated, onEditClick, onLikeUpdate }) => {
+export const ActionBar = ({ task, isCreator, onTaskUpdated, onLikeUpdate }) => {
   const [liked, setLiked] = useState(task?.liked ?? false);
   const [likeCount, setLikeCount] = useState(task?.likeCount ?? 0);
   const [bookmarked, setBookmarked] = useState(false);
@@ -146,16 +146,6 @@ export const ActionBar = ({ task, isCreator, onTaskUpdated, onEditClick, onLikeU
           fill={bookmarked ? 'currentColor' : 'none'}
         />
       </ActionButton>
-
-      {isCreator && onEditClick && (
-        <ActionButton
-          icon={Pencil}
-          label="Edit"
-          onClick={onEditClick}
-        >
-          <Pencil size={28} strokeWidth={2} />
-        </ActionButton>
-      )}
 
       <div className="action-bar__share">
         <ShareDialog task={task} variant="icon" />

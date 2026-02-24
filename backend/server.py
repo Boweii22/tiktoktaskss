@@ -26,6 +26,13 @@ if supabase_url and supabase_key:
         logging.warning(f"Supabase init failed: {e}")
 
 
+class CommunityProposalCreate(BaseModel):
+    session_id: str
+    title: Optional[str] = ""
+    idea_text: str
+    image_url: Optional[str] = ""
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
@@ -33,6 +40,118 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 api_router = APIRouter(prefix="/api")
+
+
+# Community proposals — registered first so nothing can shadow them
+@api_router.post("/community-proposals")
+def create_community_proposal(data: CommunityProposalCreate):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    prof = None
+    try:
+        r = supabase.table("profiles").select("username").eq("session_id", data.session_id).execute()
+        if r.data and len(r.data) > 0:
+            prof = r.data[0]
+    except Exception:
+        pass
+    if not prof:
+        raise HTTPException(status_code=403, detail="Create a profile first to post ideas")
+    idea_text = (data.idea_text or "").strip()[:2000]
+    if not idea_text:
+        raise HTTPException(status_code=400, detail="Idea text is required")
+    title = (data.title or "").strip()[:120] or None
+    image_url = (data.image_url or "").strip()[:500] or None
+    try:
+        ins = supabase.table("community_proposals").insert({
+            "created_by_session_id": data.session_id,
+            "created_by_username": prof.get("username"),
+            "title": title,
+            "idea_text": idea_text,
+            "image_url": image_url,
+            "status": "pending",
+        }).execute()
+        row = ins.data[0] if ins.data else {}
+        return {
+            "id": str(row.get("id")),
+            "title": title,
+            "idea_text": idea_text,
+            "image_url": image_url,
+            "status": "pending",
+            "created_by_username": prof.get("username"),
+            "created_at": row.get("created_at"),
+        }
+    except Exception as e:
+        logging.exception(f"create_community_proposal: {e}")
+        err_msg = str(e).lower()
+        if "404" in err_msg or "relation" in err_msg or "does not exist" in err_msg or "community_proposals" in err_msg:
+            raise HTTPException(
+                status_code=503,
+                detail="community_proposals table missing. Run supabase_community_proposals.sql in Supabase SQL Editor.",
+            )
+        raise HTTPException(status_code=500, detail="Failed to post idea")
+
+
+@api_router.get("/community-proposals/pending")
+def get_pending_proposals(session_id: str = ""):
+    if not supabase or not session_id or session_id not in admin_session_ids:
+        return []
+    try:
+        r = supabase.table("community_proposals").select("*").eq("status", "pending").order("created_at", desc=True).execute()
+        return r.data or []
+    except Exception:
+        return []
+
+
+@api_router.get("/community-proposals")
+def get_community_proposals(username: str = "", session_id: str = ""):
+    if not supabase:
+        return []
+    try:
+        if username:
+            r = supabase.table("community_proposals").select("*").eq("created_by_username", username.strip().lower().replace(" ", "_")).order("created_at", desc=True).execute()
+        elif session_id and session_id in admin_session_ids:
+            r = supabase.table("community_proposals").select("*").order("created_at", desc=True).execute()
+        else:
+            return []
+        return r.data or []
+    except Exception:
+        return []
+
+
+@api_router.get("/community-proposals/all")
+def get_all_proposals(session_id: str = ""):
+    """Admin: list ALL proposals regardless of status."""
+    if not supabase or not session_id or session_id not in admin_session_ids:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    try:
+        r = supabase.table("community_proposals").select("*").order("created_at", desc=True).execute()
+        return r.data or []
+    except Exception as e:
+        logging.exception(f"get_all_proposals: {e}")
+        return []
+
+
+@api_router.patch("/community-proposals/{proposal_id}")
+def update_proposal_status(proposal_id: str, status: str = "implemented", session_id: str = ""):
+    if not supabase or not session_id or session_id not in admin_session_ids:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    if status not in ("pending", "reviewing", "implemented"):
+        raise HTTPException(status_code=400, detail="status must be pending, reviewing, or implemented")
+    try:
+        r = supabase.table("community_proposals").select("id").eq("id", proposal_id).execute()
+        if not r.data or len(r.data) == 0:
+            raise HTTPException(status_code=404, detail="Proposal not found")
+        supabase.table("community_proposals").update({
+            "status": status,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", proposal_id).execute()
+        return {"id": proposal_id, "status": status}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.exception(f"update_proposal_status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update proposal")
+
 
 # Task definitions - these define the impossible tasks
 TASKS = [
@@ -305,6 +424,7 @@ class TaskUpdate(BaseModel):
     instruction: Optional[str] = None
     config: Optional[dict] = None
 
+
 def _get_stats(task_id: str) -> dict:
     """Get stats for a task from Supabase, or default if not configured."""
     if not supabase:
@@ -369,6 +489,96 @@ def _resolve_task(task_id: str) -> Optional[dict]:
         pass
     return None
 
+
+# --- Difficulty adjustment from global completion rates ---
+# When completion_rate is very low we ease (widen tolerances/windows); when high we slightly harden.
+MIN_ATTEMPTS_FOR_ADJUSTMENT = 25
+EASE_THRESHOLD = 0.10   # below this: ease up to 50%
+HARDEN_THRESHOLD = 0.45  # above this: harden up to 12%
+MAX_EASE_FACTOR = 1.5
+MIN_HARDEN_FACTOR = 0.88
+
+# Per task type: param name -> ("ease_direction", min_val, max_val).
+# ease_direction: 1 = higher value = easier (e.g. tolerance); -1 = lower = easier (e.g. sensitivity).
+DIFFICULTY_PARAMS = {
+    "timing": [("tolerance", 1, 5, 50)],
+    "static_tap": [("window_ms", 1, 20, 80)],
+    "shrinking_circle": [("shrink_rate", 1, 0.90, 0.99), ("min_size", 1, 8, 25)],
+    "trap_tap": [],  # required_taps is game identity; skip
+    "balance": [("sensitivity", -1, 1.5, 4.0), ("duration", -1, 4000, 6000)],
+    "wait": [("min_wait", -1, 2500, 4000), ("max_wait", 1, 8000, 12000)],
+    "align": [("window_ms", 1, 80, 180), ("align_threshold_deg", 1, 8, 18)],
+    "reaction": [("window_ms", 1, 140, 220)],
+    "hesitation": [("max_delay", 1, 350, 550)],
+    "precision": [("tolerance", 1, 0.3, 1.2)],
+    "rapid": [("time_limit", 1, 2000, 2800), ("tolerance", 1, 0, 2)],
+    "color_stop": [("window_ms", 1, 60, 120)],
+    "vibration_end": [("window_ms", 1, 350, 550)],
+    "tap_center": [("tolerance_px", 1, 8, 22)],
+    "dont_blink": [("window_ms", 1, 100, 180)],
+    "swipe_straight": [("max_angle_deg", 1, 10, 22)],
+    "tap_once": [("window_ms", 1, 300, 500)],
+    "tap_nothing": [("window_ms", 1, 250, 400)],
+    "timer_zero": [("window_ms", 1, 150, 280)],
+    "finger_still": [("max_move_px", 1, 5, 14), ("duration", -1, 2500, 4000)],
+    "drag_no_edge": [("margin_px", -1, 10, 22)],
+    "match_rhythm": [("tolerance_ms", 1, 100, 180)],
+    "wait_longer": [("window_ms", 1, 350, 550)],
+    "odd_frame": [("odd_duration_frames", 1, 3, 8)],
+    "dont_react": [("window_ms", 1, 180, 280)],
+    "swipe_slow": [("min_speed", -1, 28, 40), ("max_speed", 1, 80, 95)],
+    "tap_same_spot": [("tolerance_px", 1, 6, 16)],
+}
+
+
+def _adjust_difficulty(task_type: str, config: dict, completion_rate: float, attempts: int) -> dict:
+    """Adjust task config based on global completion rate. Ease when very hard, slight harden when too easy."""
+    if attempts < MIN_ATTEMPTS_FOR_ADJUSTMENT:
+        return dict(config)
+    params_spec = DIFFICULTY_PARAMS.get(task_type, [])
+    if not params_spec:
+        return dict(config)
+    out = dict(config)
+    rate = float(completion_rate)
+    # Ease factor when rate < EASE_THRESHOLD: 1.0 at threshold up to MAX_EASE at 0%
+    if rate < EASE_THRESHOLD:
+        ease = 1.0 + (EASE_THRESHOLD - rate) / EASE_THRESHOLD * (MAX_EASE_FACTOR - 1.0)
+    else:
+        ease = 1.0
+    # Harden factor when rate > HARDEN_THRESHOLD: 1.0 at threshold down to MIN_HARDEN at 100%
+    if rate > HARDEN_THRESHOLD:
+        harden = 1.0 - (rate - HARDEN_THRESHOLD) / (1.0 - HARDEN_THRESHOLD) * (1.0 - MIN_HARDEN_FACTOR)
+        harden = max(harden, MIN_HARDEN_FACTOR)
+    else:
+        harden = 1.0
+
+    for item in params_spec:
+        if len(item) == 4:
+            param, direction, min_val, max_val = item
+        else:
+            continue
+        if param not in out:
+            continue
+        try:
+            base = float(out[param]) if not isinstance(out[param], int) else int(out[param])
+        except (TypeError, ValueError):
+            continue
+        if direction == 1:  # higher = easier
+            adjusted = base * ease if ease != 1.0 else base
+            if harden != 1.0:
+                adjusted = adjusted * harden
+        else:  # lower = easier
+            adjusted = base / ease if ease != 1.0 else base
+            if harden != 1.0:
+                adjusted = adjusted / harden
+        if isinstance(out[param], int):
+            adjusted = int(round(adjusted))
+        else:
+            adjusted = round(adjusted, 2)
+        out[param] = max(min_val, min(max_val, adjusted))
+    return out
+
+
 # Routes
 @api_router.get("/")
 def root():
@@ -389,7 +599,7 @@ def health():
 
 @api_router.get("/tasks", response_model=List[TaskResponse])
 def get_tasks():
-    """Get global tasks. Prefer user-created tasks (with creator) when present; else built-in."""
+    """Get global tasks. Prefer user-created tasks (with creator) when present; else built-in. Config is adjusted by completion rate."""
     tasks_with_stats = []
     all_stats = {s["task_id"]: s for s in _get_all_stats()}
     user_tasks = [{"id": t["id"], "name": t["name"], "instruction": t["instruction"], "type": t["type"], "config": t.get("config") or {}, "created_by_username": t.get("created_by_username") or ""} for t in _get_user_tasks()]
@@ -398,7 +608,10 @@ def get_tasks():
         stats = all_stats.get(task["id"]) or {"task_id": task["id"], "attempts": 0, "completions": 0, "completion_rate": 0.0}
         if "completion_rate" not in stats:
             stats["completion_rate"] = 0.0
-        tasks_with_stats.append({**task, "stats": TaskStats(**stats)})
+        attempts = stats.get("attempts") or 0
+        rate = float(stats.get("completion_rate") or 0)
+        config = _adjust_difficulty(task["type"], task.get("config") or {}, rate, attempts)
+        tasks_with_stats.append({**task, "config": config, "stats": TaskStats(**stats)})
     return tasks_with_stats
 
 
@@ -476,16 +689,19 @@ def update_task(task_id: str, data: TaskUpdate, session_id: str = ""):
 
 @api_router.get("/tasks/{task_id}", response_model=TaskResponse)
 def get_task(task_id: str):
-    """Get a single task with stats"""
+    """Get a single task with stats. Config is adjusted by global completion rate."""
     task = _resolve_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     stats = _get_stats(task_id)
-    return {**task, "stats": TaskStats(**stats)}
+    attempts = stats.get("attempts") or 0
+    rate = float(stats.get("completion_rate") or 0)
+    config = _adjust_difficulty(task["type"], task.get("config") or {}, rate, attempts)
+    return {**task, "config": config, "stats": TaskStats(**stats)}
 
 @api_router.post("/tasks/{task_id}/attempt")
 def record_attempt(task_id: str, data: AttemptCreate):
-    """Record a task attempt"""
+    """Record a task attempt (failed try). Resets streak for the session's profile."""
     task = _resolve_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -498,6 +714,19 @@ def record_attempt(task_id: str, data: AttemptCreate):
             "session_id": data.session_id,
             "completed": False
         }).execute()
+        # Reset streak on fail; return new streak so frontend can update immediately
+        if data.session_id:
+            try:
+                r = supabase.table("profiles").select("id,longest_streak").eq("session_id", data.session_id).execute()
+                if r.data and len(r.data) > 0:
+                    supabase.table("profiles").update({
+                        "current_streak": 0,
+                        "updated_at": datetime.now(timezone.utc).isoformat()
+                    }).eq("id", r.data[0]["id"]).execute()
+                    longest = int(r.data[0].get("longest_streak") or 0)
+                    return {"status": "recorded", "task_id": task_id, "current_streak": 0, "longest_streak": longest}
+            except Exception:
+                pass
     except Exception as e:
         logging.warning(f"record_attempt: {e}")
     return {"status": "recorded", "task_id": task_id}
@@ -518,19 +747,31 @@ def record_completion(task_id: str, data: CompletionCreate):
             "time_taken": data.time_taken
         }).execute()
         stats = _get_stats(task_id)
-            # Increment games_played for profile with this session_id
+        # Increment games_played and streak for profile with this session_id
+        new_cur, new_longest = None, None
         if data.session_id:
             try:
-                r = supabase.table("profiles").select("id,games_played").eq("session_id", data.session_id).execute()
+                r = supabase.table("profiles").select("id,games_played,current_streak,longest_streak").eq("session_id", data.session_id).execute()
                 if r.data and len(r.data) > 0:
                     prof = r.data[0]
+                    cur = int(prof.get("current_streak") or 0)
+                    longest = int(prof.get("longest_streak") or 0)
+                    new_cur = cur + 1
+                    new_longest = max(longest, new_cur)
                     supabase.table("profiles").update({
                         "games_played": (prof.get("games_played") or 0) + 1,
+                        "current_streak": new_cur,
+                        "longest_streak": new_longest,
                         "updated_at": datetime.now(timezone.utc).isoformat()
                     }).eq("id", prof["id"]).execute()
             except Exception:
                 pass
-        return {"status": "completed", "task_id": task_id, "stats": stats}
+        out = {"status": "completed", "task_id": task_id, "stats": stats}
+        if new_cur is not None:
+            out["current_streak"] = new_cur
+        if new_longest is not None:
+            out["longest_streak"] = new_longest
+        return out
     except Exception as e:
         print(f"[record_completion ERROR] {e}")
         logging.exception("record_completion failed")
@@ -556,12 +797,15 @@ def get_user_tasks(session_id: str = "", username: str = ""):
     result = []
     for t in user_tasks:
         stats = all_stats.get(t["id"]) or {"task_id": t["id"], "attempts": 0, "completions": 0, "completion_rate": 0.0}
+        attempts = stats.get("attempts") or 0
+        rate = float(stats.get("completion_rate") or 0)
+        config = _adjust_difficulty(t["type"], t.get("config") or {}, rate, attempts)
         result.append({
             "id": t["id"],
             "name": t["name"],
             "instruction": t["instruction"],
             "type": t["type"],
-            "config": t.get("config") or {},
+            "config": config,
             "created_by_username": t.get("created_by_username") or "",
             "stats": TaskStats(**stats),
         })
@@ -873,6 +1117,8 @@ def _profile_row_to_dict(row: dict, include_tasks_created: bool = False) -> dict
         "following_count": row.get("following_count") or 0,
         "games_played": row.get("games_played") or 0,
         "likes_received": likes_received,
+        "current_streak": row.get("current_streak") or 0,
+        "longest_streak": row.get("longest_streak") or 0,
         "created_at": row.get("created_at"),
     }
     if include_tasks_created:

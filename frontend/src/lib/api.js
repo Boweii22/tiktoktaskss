@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = BACKEND_URL ? `${String(BACKEND_URL).replace(/\/$/, '')}/api` : '';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const API = `${String(BACKEND_URL).replace(/\/$/, '')}/api`;
+console.log('[API] Backend URL:', BACKEND_URL, '| API base:', API);
 
 // Fallback task list when backend/API is unavailable (no DB or server down)
 const FALLBACK_TASKS = [
@@ -337,6 +338,47 @@ export const api = {
     if (!API) return [];
     try {
       const response = await axios.get(`${API}/task-submissions`, { params: { session_id: getSessionId() } });
+      return response.data || [];
+    } catch {
+      return [];
+    }
+  },
+
+  // Community proposals (idea + optional image; status pending/implemented)
+  createCommunityProposal: async (payload) => {
+    const response = await axios.post(`${API}/community-proposals`, {
+      session_id: getSessionId(),
+      title: payload.title,
+      idea_text: payload.idea_text,
+      image_url: payload.image_url
+    });
+    return response.data;
+  },
+  getAllProposals: async () => {
+    try {
+      const response = await axios.get(`${API}/community-proposals/all`, {
+        params: { session_id: getSessionId() }
+      });
+      return response.data || [];
+    } catch {
+      return [];
+    }
+  },
+  updateProposalStatus: async (proposalId, status) => {
+    const response = await axios.patch(
+      `${API}/community-proposals/${proposalId}`,
+      null,
+      { params: { session_id: getSessionId(), status } }
+    );
+    return response.data;
+  },
+
+  getCommunityProposals: async (username) => {
+    if (!API) return [];
+    try {
+      const response = await axios.get(`${API}/community-proposals`, {
+        params: username ? { username } : { session_id: getSessionId() }
+      });
       return response.data || [];
     } catch {
       return [];

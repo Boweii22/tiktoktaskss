@@ -5,6 +5,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { ProfileProvider } from "./contexts/ProfileContext";
 import { TaskContainer } from "./components/game/TaskContainer";
 import { OnboardingModal } from "./components/profile/OnboardingModal";
+import { AdminPage } from "./pages/AdminPage";
 import { Toaster } from "./components/ui/sonner";
 
 // Main game view - loads random task
@@ -27,6 +28,7 @@ function App() {
             <Routes>
               <Route path="/" element={<GameView />} />
               <Route path="/task/:taskId" element={<TaskView />} />
+              <Route path="/admin" element={<AdminPage />} />
             </Routes>
           </BrowserRouter>
           <OnboardingModal />

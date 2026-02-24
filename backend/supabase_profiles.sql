@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS profiles (
   following_count BIGINT NOT NULL DEFAULT 0,
   games_played BIGINT NOT NULL DEFAULT 0,
   likes_received BIGINT NOT NULL DEFAULT 0,
+  current_streak INT NOT NULL DEFAULT 0,
+  longest_streak INT NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

@@ -4,14 +4,14 @@ import { getTaskComponent } from './taskRegistry';
 import { StatsOverlay } from './StatsOverlay';
 import { ActionBar } from './ActionBar';
 import { SwipeHint } from './SwipeHint';
+import { StreakBadge } from './StreakBadge';
 import { UsernameButton } from '../profile/UsernameButton';
 import { ProfileOverlay } from '../profile/ProfileOverlay';
-import { CreateTaskModal } from '../tasks/CreateTaskModal';
 import { useProfile } from '../../contexts/ProfileContext';
 import { api } from '../../lib/api';
 import { soundManager } from '../../lib/sounds';
 
-export const TaskCard = ({ task, onSuccess, onFail, localAttempts, onCreatorClick, isCreator, onTaskUpdated, onEditClick, onLikeUpdate }) => {
+export const TaskCard = ({ task, onSuccess, onFail, localAttempts, onCreatorClick, isCreator, onTaskUpdated, onLikeUpdate }) => {
   const [flashState, setFlashState] = useState(null); // 'success' | 'fail' | null
   
   const TaskComponent = getTaskComponent(task?.type);
@@ -83,7 +83,6 @@ export const TaskCard = ({ task, onSuccess, onFail, localAttempts, onCreatorClic
         task={task}
         isCreator={isCreator}
         onTaskUpdated={onTaskUpdated}
-        onEditClick={onEditClick}
         onLikeUpdate={onLikeUpdate}
       />
     </motion.div>
@@ -91,7 +90,7 @@ export const TaskCard = ({ task, onSuccess, onFail, localAttempts, onCreatorClic
 };
 
 export const TaskContainer = ({ initialTaskId = null }) => {
-  const { profile } = useProfile();
+  const { profile, refreshProfile, setProfile } = useProfile();
   const [tasks, setTasks] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -101,6 +100,17 @@ export const TaskContainer = ({ initialTaskId = null }) => {
   const [profileOverlayOpen, setProfileOverlayOpen] = useState(false);
   const [profileOverlayUsername, setProfileOverlayUsername] = useState(null);
   const [editTask, setEditTask] = useState(null);
+  const [streakJustIncreased, setStreakJustIncreased] = useState(false);
+  const [streakJustReset, setStreakJustReset] = useState(false);
+
+  useEffect(() => {
+    if (!streakJustIncreased && !streakJustReset) return;
+    const t = setTimeout(() => {
+      setStreakJustIncreased(false);
+      setStreakJustReset(false);
+    }, 700);
+    return () => clearTimeout(t);
+  }, [streakJustIncreased, streakJustReset]);
 
   const fetchTasks = useCallback(async () => {
     const result = await api.getTasks();
@@ -194,36 +204,52 @@ export const TaskContainer = ({ initialTaskId = null }) => {
 
   const handleSuccess = useCallback(async () => {
     if (!currentTask) return;
-    
-    // Record completion
+    setStreakJustIncreased(true);
+    // Optimistic: bump streak so the badge updates immediately
+    if (profile) {
+      const next = (profile.current_streak ?? 0) + 1;
+      const best = Math.max(profile.longest_streak ?? 0, next);
+      setProfile({ ...profile, current_streak: next, longest_streak: best });
+    }
     const result = await api.recordCompletion(currentTask.id);
     if (result?.stats) {
       setTasks(prev => prev.map(t => 
         t.id === currentTask.id ? { ...t, stats: result.stats } : t
       ));
     }
-  }, [currentTask]);
+    // Use API values if returned (server-authoritative)
+    if (result && (result.current_streak != null || result.longest_streak != null) && profile) {
+      setProfile(prev => prev ? {
+        ...prev,
+        ...(result.current_streak != null && { current_streak: result.current_streak }),
+        ...(result.longest_streak != null && { longest_streak: result.longest_streak }),
+      } : prev);
+    } else if (!profile) {
+      await refreshProfile();
+    }
+  }, [currentTask, profile, refreshProfile, setProfile]);
 
   const handleFail = useCallback(async () => {
     if (!currentTask) return;
-    
-    // Record attempt
-    await api.recordAttempt(currentTask.id);
-    
-    // Update local attempts
+    const hadStreak = (profile?.current_streak ?? 0) > 0;
+    if (hadStreak) setStreakJustReset(true);
+    // Optimistic: reset streak so badge shows 0 immediately
+    if (profile) setProfile({ ...profile, current_streak: 0 });
+    const result = await api.recordAttempt(currentTask.id);
+    if (result && result.longest_streak != null && profile) {
+      setProfile(prev => prev ? { ...prev, longest_streak: result.longest_streak } : prev);
+    }
     setLocalAttempts(prev => ({
       ...prev,
       [currentTask.id]: (prev[currentTask.id] || 0) + 1
     }));
-    
-    // Refresh stats
     const stats = await api.getTaskStats(currentTask.id);
     if (stats) {
       setTasks(prev => prev.map(t => 
         t.id === currentTask.id ? { ...t, stats } : t
       ));
     }
-  }, [currentTask]);
+  }, [currentTask, profile, refreshProfile, setProfile]);
 
   const goToNext = useCallback(() => {
     if (currentIndex < tasks.length - 1) {
@@ -272,23 +298,25 @@ export const TaskContainer = ({ initialTaskId = null }) => {
   return (
     <div className="task-viewport relative" data-testid="task-container">
       <div className="task-viewport__profile-header" style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)' }}>
-        {profile?.username && (
-          <UsernameButton
-            username={profile.username}
-            displayName={profile.display_name}
-            onClick={() => setProfileOverlayOpen(true)}
-          />
-        )}
+        <div className="task-viewport__header-row">
+          {profile?.username && (
+            <UsernameButton
+              username={profile.username}
+              displayName={profile.display_name}
+              onClick={() => setProfileOverlayOpen(true)}
+            />
+          )}
+          {profile && (
+            <StreakBadge
+              currentStreak={profile.current_streak ?? 0}
+              longestStreak={profile.longest_streak ?? 0}
+              justIncreased={streakJustIncreased}
+              justReset={streakJustReset}
+            />
+          )}
+        </div>
       </div>
       <AnimatePresence>
-        {editTask && (
-          <CreateTaskModal
-            mode="edit"
-            task={editTask}
-            onClose={() => setEditTask(null)}
-            onCreated={(updated) => { handleTaskUpdated(updated); setEditTask(null); }}
-          />
-        )}
         {profileOverlayOpen && (
           profileOverlayUsername ? (
             <ProfileOverlay
@@ -345,7 +373,6 @@ export const TaskContainer = ({ initialTaskId = null }) => {
               onCreatorClick={(un) => { setProfileOverlayUsername(un); setProfileOverlayOpen(true); }}
               isCreator={!!(profile?.username && currentTask?.created_by_username === profile.username)}
               onTaskUpdated={handleTaskUpdated}
-              onEditClick={currentTask?.created_by_username ? () => setEditTask(currentTask) : undefined}
               onLikeUpdate={handleLikeUpdate}
             />
           </motion.div>

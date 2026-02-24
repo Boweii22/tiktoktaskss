@@ -125,6 +125,14 @@ body {
   pointer-events: auto;
 }
 
+.task-viewport__header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+}
+
 .task-viewport__create-btn {
   padding: 6px 12px;
   background: var(--brand-accent);
