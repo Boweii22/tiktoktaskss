@@ -355,14 +355,10 @@ export const api = {
     return response.data;
   },
   getAllProposals: async () => {
-    try {
-      const response = await axios.get(`${API}/community-proposals/all`, {
-        params: { session_id: getSessionId() }
-      });
-      return response.data || [];
-    } catch {
-      return [];
-    }
+    const response = await axios.get(`${API}/community-proposals`, {
+      params: { session_id: getSessionId() }
+    });
+    return response.data || [];
   },
   updateProposalStatus: async (proposalId, status) => {
     const response = await axios.patch(

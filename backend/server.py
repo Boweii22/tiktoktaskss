@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime, timezone
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+load_dotenv(ROOT_DIR / '.env', override=True)
 
 # Supabase connection
 supabase_url = os.environ.get('SUPABASE_URL', '').strip()
@@ -105,30 +105,42 @@ def get_pending_proposals(session_id: str = ""):
 @api_router.get("/community-proposals")
 def get_community_proposals(username: str = "", session_id: str = ""):
     if not supabase:
-        return []
+        raise HTTPException(status_code=503, detail="Database unavailable")
     try:
         if username:
             r = supabase.table("community_proposals").select("*").eq("created_by_username", username.strip().lower().replace(" ", "_")).order("created_at", desc=True).execute()
-        elif session_id and session_id in admin_session_ids:
+            logging.info(f"get_community_proposals(username={username!r}): {len(r.data or [])} rows")
+            return r.data or []
+        if session_id and session_id in admin_session_ids:
             r = supabase.table("community_proposals").select("*").order("created_at", desc=True).execute()
-        else:
-            return []
-        return r.data or []
-    except Exception:
-        return []
-
-
-@api_router.get("/community-proposals/all")
-def get_all_proposals(session_id: str = ""):
-    """Admin: list ALL proposals regardless of status."""
-    if not supabase or not session_id or session_id not in admin_session_ids:
+            logging.info(f"get_community_proposals(admin): {len(r.data or [])} rows returned")
+            return r.data or []
+        # No username and not admin
+        logging.warning(f"get_community_proposals: session_id={session_id!r} not in admin list (list size={len(admin_session_ids)})")
         raise HTTPException(status_code=403, detail="Admin access required")
-    try:
-        r = supabase.table("community_proposals").select("*").order("created_at", desc=True).execute()
-        return r.data or []
+    except HTTPException:
+        raise
     except Exception as e:
-        logging.exception(f"get_all_proposals: {e}")
-        return []
+        logging.exception(f"get_community_proposals error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch proposals: {e}")
+
+
+
+@api_router.get("/debug-proposals")
+def debug_proposals(session_id: str = ""):
+    info = {
+        "supabase_ok": supabase is not None,
+        "admin_ids": list(admin_session_ids),
+        "session_in_admin": session_id in admin_session_ids,
+    }
+    if supabase:
+        try:
+            r = supabase.table("community_proposals").select("*").execute()
+            info["rows"] = len(r.data or [])
+            info["data"] = r.data
+        except Exception as e:
+            info["error"] = str(e)
+    return info
 
 
 @api_router.patch("/community-proposals/{proposal_id}")

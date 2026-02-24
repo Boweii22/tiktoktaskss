@@ -26,14 +26,22 @@ export function AdminPage() {
 
   const loadProposals = useCallback(async () => {
     setLoading(true);
-    const list = await api.getAllProposals();
-    if (list && !list.detail) {
+    try {
+      const list = await api.getAllProposals();
       setIsAdmin(true);
       setProposals(list);
-    } else {
-      setIsAdmin(false);
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 403) {
+        setIsAdmin(false);
+      } else {
+        toast.error('Failed to load proposals: ' + (err?.response?.data?.detail || err.message));
+        setIsAdmin(true);
+        setProposals([]);
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => { loadProposals(); }, [loadProposals]);
@@ -45,7 +53,8 @@ export function AdminPage() {
       setProposals(prev => prev.map(p => p.id === proposal.id ? { ...p, status: newStatus } : p));
       toast.success(`Marked as ${STATUS_CONFIG[newStatus]?.label}`);
     } catch (e) {
-      toast.error('Failed to update status');
+      const detail = e?.response?.data?.detail || e.message || '';
+      toast.error('Failed to update status' + (detail ? `: ${detail}` : ''));
     } finally {
       setUpdatingId(null);
     }
@@ -131,18 +140,23 @@ export function AdminPage() {
                       </span>
                     </div>
                     <div className="admin-card__actions">
-                      {nextStatuses.map(next => (
-                        <motion.button
-                          key={next}
-                          className={`admin-action admin-action--${next}`}
-                          onClick={() => handleStatus(proposal, next)}
-                          disabled={updatingId === proposal.id}
-                          whileTap={{ scale: 0.96 }}
-                        >
-                          {updatingId === proposal.id ? <Loader size={14} className="admin-spinner--sm" /> : STATUS_CONFIG[next]?.icon && <STATUS_CONFIG[next].icon size={14} />}
-                          {STATUS_CONFIG[next]?.label}
-                        </motion.button>
-                      ))}
+                      {nextStatuses.map(next => {
+                        const NextIcon = STATUS_CONFIG[next]?.icon;
+                        return (
+                          <motion.button
+                            key={next}
+                            className={`admin-action admin-action--${next}`}
+                            onClick={() => handleStatus(proposal, next)}
+                            disabled={updatingId === proposal.id}
+                            whileTap={{ scale: 0.96 }}
+                          >
+                            {updatingId === proposal.id
+                              ? <Loader size={14} className="admin-spinner--sm" />
+                              : NextIcon && <NextIcon size={14} />}
+                            {STATUS_CONFIG[next]?.label}
+                          </motion.button>
+                        );
+                      })}
                     </div>
                   </div>
 
