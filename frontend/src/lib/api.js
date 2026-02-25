@@ -311,6 +311,36 @@ export const api = {
     }
   },
 
+  // Bookmarks
+  getBookmarkStatus: async (taskId) => {
+    if (!API) return { bookmarked: false };
+    try {
+      const r = await axios.get(`${API}/tasks/${encodeURIComponent(taskId)}/bookmark`, { params: { session_id: getSessionId() } });
+      return r.data;
+    } catch { return { bookmarked: false }; }
+  },
+  bookmarkTask: async (taskId) => {
+    if (!API) return { bookmarked: false };
+    try {
+      const r = await axios.post(`${API}/tasks/${encodeURIComponent(taskId)}/bookmark`, null, { params: { session_id: getSessionId() } });
+      return r.data;
+    } catch { return { bookmarked: false }; }
+  },
+  unbookmarkTask: async (taskId) => {
+    if (!API) return { bookmarked: false };
+    try {
+      const r = await axios.delete(`${API}/tasks/${encodeURIComponent(taskId)}/bookmark`, { params: { session_id: getSessionId() } });
+      return r.data;
+    } catch { return { bookmarked: false }; }
+  },
+  getBookmarks: async () => {
+    if (!API) return [];
+    try {
+      const r = await axios.get(`${API}/bookmarks`, { params: { session_id: getSessionId() } });
+      return r.data || [];
+    } catch { return []; }
+  },
+
   // Task comments
   getTaskComments: async (taskId) => {
     if (!API) return [];

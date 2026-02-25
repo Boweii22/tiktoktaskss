@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, MessageCircle, Bookmark, Share2 } from 'lucide-react';
 import { ThemeToggle } from '../ThemeToggle';
-import { ShareDialog } from './ShareDialog';
+import { ShareSheet } from './ShareSheet';
 import { CommentsDrawer } from './CommentsDrawer';
 import { api } from '../../lib/api';
 import { useProfile } from '../../contexts/ProfileContext';
@@ -31,10 +31,18 @@ export const ActionBar = ({ task, isCreator, onTaskUpdated, onLikeUpdate }) => {
   const [liked, setLiked] = useState(task?.liked ?? false);
   const [likeCount, setLikeCount] = useState(task?.likeCount ?? 0);
   const [bookmarked, setBookmarked] = useState(false);
+  const [bookmarkPop, setBookmarkPop] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [showHeartBurst, setShowHeartBurst] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
   const lastTapRef = useRef(0);
+
+  // Load bookmark state when task changes
+  useEffect(() => {
+    if (!task?.id) return;
+    api.getBookmarkStatus(task.id).then(d => setBookmarked(d?.bookmarked ?? false));
+  }, [task?.id]);
 
   const fetchLikes = useCallback(async () => {
     if (!task?.id) return;
@@ -97,9 +105,22 @@ export const ActionBar = ({ task, isCreator, onTaskUpdated, onLikeUpdate }) => {
     }
   }, [task?.id, liked, likeCount, onLikeUpdate]);
 
-  const handleBookmark = useCallback(() => {
-    setBookmarked(prev => !prev);
-  }, []);
+  const handleBookmark = useCallback(async () => {
+    if (!profile) {
+      toast.error('Create a profile to save tasks', { description: 'Tap your name area to set up a profile first.' });
+      return;
+    }
+    const willBookmark = !bookmarked;
+    setBookmarked(willBookmark);
+    if (willBookmark) {
+      setBookmarkPop(true);
+      setTimeout(() => setBookmarkPop(false), 600);
+      toast.success('Saved!', { duration: 1500 });
+    }
+    const fn = willBookmark ? api.bookmarkTask : api.unbookmarkTask;
+    const result = await fn(task?.id);
+    if (result?.bookmarked !== undefined) setBookmarked(result.bookmarked);
+  }, [bookmarked, task?.id, profile]);
 
   const handleComment = useCallback(() => {
     if (!profile) {
@@ -144,23 +165,36 @@ export const ActionBar = ({ task, isCreator, onTaskUpdated, onLikeUpdate }) => {
         onClick={handleComment}
       />
 
-      <ActionButton
-        icon={Bookmark}
-        label="Save"
+      <motion.button
+        type="button"
+        className="action-bar__btn"
         onClick={handleBookmark}
-        isActive={bookmarked}
-        activeColor="var(--brand-accent)"
+        whileTap={{ scale: 0.88 }}
+        whileHover={{ scale: 1.05 }}
       >
-        <Bookmark
-          size={28}
-          strokeWidth={2}
-          fill={bookmarked ? 'currentColor' : 'none'}
-        />
-      </ActionButton>
+        <div className="action-bar__icon-wrap" style={bookmarked ? { color: '#f59e0b' } : undefined}>
+          <motion.div
+            animate={bookmarkPop ? { scale: [1, 1.5, 0.9, 1.15, 1], rotate: [0, -12, 8, -4, 0] } : { scale: 1 }}
+            transition={{ duration: 0.45, ease: 'easeOut' }}
+          >
+            <Bookmark size={28} strokeWidth={2} fill={bookmarked ? 'currentColor' : 'none'} />
+          </motion.div>
+        </div>
+        <span className="action-bar__count">{bookmarked ? 'Saved' : 'Save'}</span>
+      </motion.button>
 
-      <div className="action-bar__share">
-        <ShareDialog task={task} variant="icon" />
-      </div>
+      <motion.button
+        type="button"
+        className="action-bar__btn"
+        onClick={() => setShareOpen(true)}
+        whileTap={{ scale: 0.88 }}
+        whileHover={{ scale: 1.05 }}
+      >
+        <div className="action-bar__icon-wrap">
+          <Share2 size={28} strokeWidth={2} />
+        </div>
+        <span className="action-bar__count">Share</span>
+      </motion.button>
 
       <div className="action-bar__divider" />
 
@@ -173,6 +207,8 @@ export const ActionBar = ({ task, isCreator, onTaskUpdated, onLikeUpdate }) => {
         open={commentsOpen}
         onOpenChange={(o) => { if (!o) handleCommentsClose(); setCommentsOpen(o); }}
       />
+
+      <ShareSheet task={task} open={shareOpen} onClose={() => setShareOpen(false)} />
 
       <AnimatePresence>
         {showHeartBurst && (

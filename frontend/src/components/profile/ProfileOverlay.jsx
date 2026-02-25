@@ -23,6 +23,8 @@ export function ProfileOverlay({ profile: initialProfile, username, onClose, isO
   const [proposeOpen, setProposeOpen] = useState(false);
   const [proposals, setProposals] = useState([]);
   const [proposalsLoading, setProposalsLoading] = useState(false);
+  const [savedTasks, setSavedTasks] = useState([]);
+  const [savedLoading, setSavedLoading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarSaving, setAvatarSaving] = useState(false);
@@ -36,11 +38,22 @@ export function ProfileOverlay({ profile: initialProfile, username, onClose, isO
     setProposalsLoading(false);
   }, [profile?.username]);
 
+  const fetchSaved = useCallback(async () => {
+    if (!isOwnProfile) return;
+    setSavedLoading(true);
+    const list = await api.getBookmarks();
+    setSavedTasks(list || []);
+    setSavedLoading(false);
+  }, [isOwnProfile]);
+
   useEffect(() => {
     if (activeTab === 'tasks' && profile?.username) {
       fetchProposals();
     }
-  }, [activeTab, fetchProposals, profile?.username]);
+    if (activeTab === 'saved') {
+      fetchSaved();
+    }
+  }, [activeTab, fetchProposals, fetchSaved, profile?.username]);
 
   // Refresh profile stats (including likes_received) every 3s so likes update immediately
   const refreshProfileStats = useCallback(async () => {
@@ -372,13 +385,46 @@ export function ProfileOverlay({ profile: initialProfile, username, onClose, isO
                   exit={{ opacity: 0, x: 12 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <div className="profile-overlay__empty-state">
-                    <Bookmark size={48} className="profile-overlay__empty-icon" />
-                    <p className="profile-overlay__empty-title">Saved tasks</p>
-                    <p className="profile-overlay__tab-hint">
-                      Bookmarked tasks will appear here
-                    </p>
-                  </div>
+                  {!isOwnProfile ? (
+                    <div className="profile-overlay__empty-state">
+                      <Bookmark size={48} className="profile-overlay__empty-icon" />
+                      <p className="profile-overlay__empty-title">Private</p>
+                      <p className="profile-overlay__tab-hint">Saved tasks are private</p>
+                    </div>
+                  ) : savedLoading ? (
+                    <div className="profile-overlay__saved-skeleton">
+                      {[1,2,3].map(i => <div key={i} className="profile-overlay__saved-skeleton-row" />)}
+                    </div>
+                  ) : savedTasks.length === 0 ? (
+                    <div className="profile-overlay__empty-state">
+                      <Bookmark size={48} className="profile-overlay__empty-icon" />
+                      <p className="profile-overlay__empty-title">No saved tasks yet</p>
+                      <p className="profile-overlay__tab-hint">Tap the bookmark icon on any task to save it</p>
+                    </div>
+                  ) : (
+                    <div className="profile-overlay__saved-list">
+                      <p className="profile-overlay__my-tasks-title">{savedTasks.length} saved task{savedTasks.length !== 1 ? 's' : ''}</p>
+                      {savedTasks.map((t, i) => (
+                        <motion.div
+                          key={t.id}
+                          className="profile-overlay__saved-row"
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.04 }}
+                          onClick={() => { onPlayTask?.(t); onClose?.(); }}
+                        >
+                          <div className="profile-overlay__saved-info">
+                            <span className="profile-overlay__task-name">{t.name}</span>
+                            <span className="profile-overlay__saved-type">{t.type}</span>
+                          </div>
+                          <div className="profile-overlay__saved-rate">
+                            <span>{t.stats?.completion_rate?.toFixed(1) ?? '0.0'}%</span>
+                            <span className="profile-overlay__saved-rate-label">pass</span>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

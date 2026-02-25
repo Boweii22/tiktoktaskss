@@ -954,6 +954,65 @@ def unlike_task(task_id: str, session_id: str = ""):
     except Exception:
         return {"count": 0, "liked": False}
 
+@api_router.get("/tasks/{task_id}/bookmark")
+def get_bookmark_status(task_id: str, session_id: str = ""):
+    """Check if a task is bookmarked by this session."""
+    if not supabase or not session_id:
+        return {"bookmarked": False}
+    try:
+        r = supabase.table("task_bookmarks").select("id").eq("task_id", task_id).eq("session_id", session_id).execute()
+        return {"bookmarked": bool(r.data)}
+    except Exception:
+        return {"bookmarked": False}
+
+
+@api_router.post("/tasks/{task_id}/bookmark")
+def bookmark_task(task_id: str, session_id: str = ""):
+    """Bookmark a task for this session."""
+    if not supabase or not session_id:
+        return {"bookmarked": False}
+    try:
+        supabase.table("task_bookmarks").upsert({"session_id": session_id, "task_id": task_id}).execute()
+        return {"bookmarked": True}
+    except Exception:
+        return {"bookmarked": False}
+
+
+@api_router.delete("/tasks/{task_id}/bookmark")
+def unbookmark_task(task_id: str, session_id: str = ""):
+    """Remove a bookmark for this session."""
+    if not supabase or not session_id:
+        return {"bookmarked": False}
+    try:
+        supabase.table("task_bookmarks").delete().eq("task_id", task_id).eq("session_id", session_id).execute()
+        return {"bookmarked": False}
+    except Exception:
+        return {"bookmarked": False}
+
+
+@api_router.get("/bookmarks")
+def get_bookmarks(session_id: str = ""):
+    """Get all bookmarked tasks for this session."""
+    if not supabase or not session_id:
+        return []
+    try:
+        r = supabase.table("task_bookmarks").select("task_id, created_at").eq("session_id", session_id).order("created_at", desc=True).execute()
+        task_ids = [row["task_id"] for row in (r.data or [])]
+        if not task_ids:
+            return []
+        # Fetch stats for each bookmarked task id
+        tasks = []
+        for task_id in task_ids:
+            task = _resolve_task(task_id)
+            if task:
+                stats = _get_stats(task_id)
+                tasks.append({**task, "stats": stats})
+        return tasks
+    except Exception as e:
+        logging.exception(f"get_bookmarks: {e}")
+        return []
+
+
 @api_router.get("/tasks/{task_id}/comments")
 def get_task_comments(task_id: str):
     """Get comments for a task."""
