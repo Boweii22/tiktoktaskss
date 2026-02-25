@@ -255,7 +255,7 @@ export const TaskContainer = ({ initialTaskId = null }) => {
         t.id === currentTask.id ? { ...t, stats } : t
       ));
     }
-  }, [currentTask, profile, refreshProfile, setProfile]);
+  }, [currentTask, profile, setProfile]);
 
   const goToNext = useCallback(() => {
     if (currentIndex < tasks.length - 1) {

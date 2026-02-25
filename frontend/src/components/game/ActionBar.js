@@ -103,7 +103,7 @@ export const ActionBar = ({ task, isCreator, onTaskUpdated, onLikeUpdate }) => {
       setLikeCount(prevCount);
       onLikeUpdate?.(task?.id, { liked: prevLiked, count: prevCount });
     }
-  }, [task?.id, liked, likeCount, onLikeUpdate]);
+  }, [task?.id, liked, likeCount, onLikeUpdate, profile]);
 
   const handleBookmark = useCallback(async () => {
     if (!profile) {
