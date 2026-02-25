@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Drawer, DrawerContent, DrawerClose } from '../ui/drawer';
 import { api } from '../../lib/api';
+import { useProfile } from '../../contexts/ProfileContext';
 import { toast } from 'sonner';
 import { MessageCircle, X, Send } from 'lucide-react';
 import './CommentsDrawer.css';
@@ -26,6 +27,7 @@ function getInitials(username) {
 }
 
 export function CommentsDrawer({ taskId, open, onOpenChange }) {
+  const { profile } = useProfile();
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState('');
@@ -146,26 +148,32 @@ export function CommentsDrawer({ taskId, open, onOpenChange }) {
         </div>
 
         <div className="comments-drawer__input-wrap">
-          <form onSubmit={handleSubmit} className="comments-drawer__form">
-            <input
-              type="text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Add a comment..."
-              maxLength={500}
-              className="comments-drawer__input"
-              autoComplete="off"
-              aria-label="Comment text"
-            />
-            <button
-              type="submit"
-              disabled={!text.trim() || submitting}
-              className="comments-drawer__submit"
-              aria-label="Post comment"
-            >
-              <Send size={20} strokeWidth={2.5} />
-            </button>
-          </form>
+          {!profile ? (
+            <div className="comments-drawer__no-profile">
+              Create a profile to leave a comment
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="comments-drawer__form">
+              <input
+                type="text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Add a comment..."
+                maxLength={500}
+                className="comments-drawer__input"
+                autoComplete="off"
+                aria-label="Comment text"
+              />
+              <button
+                type="submit"
+                disabled={!text.trim() || submitting}
+                className="comments-drawer__submit"
+                aria-label="Post comment"
+              >
+                <Send size={20} strokeWidth={2.5} />
+              </button>
+            </form>
+          )}
         </div>
       </DrawerContent>
     </Drawer>

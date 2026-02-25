@@ -1175,6 +1175,25 @@ def create_profile(data: ProfileCreate):
     raise HTTPException(status_code=500, detail="Failed to create profile")
 
 
+@api_router.get("/profiles/search")
+def search_profiles(q: str = "", limit: int = 10):
+    """Search profiles by username prefix."""
+    if not supabase:
+        return []
+    q = q.strip().lower().replace(" ", "_")[:30]
+    if not q:
+        return []
+    try:
+        r = supabase.table("profiles").select("username,display_name,bio").ilike("username", f"{q}%").limit(min(limit, 20)).execute()
+        return r.data or []
+    except Exception:
+        try:
+            r = supabase.table("profiles").select("username,display_name,bio").ilike("username", f"%{q}%").limit(min(limit, 20)).execute()
+            return r.data or []
+        except Exception:
+            return []
+
+
 @api_router.get("/profiles/me")
 def get_my_profile(session_id: str = ""):
     """Get current user's profile by session_id."""

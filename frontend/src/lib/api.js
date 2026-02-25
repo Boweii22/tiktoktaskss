@@ -176,6 +176,15 @@ export const api = {
       throw error;
     }
   },
+  searchProfiles: async (q) => {
+    if (!API || !q) return [];
+    try {
+      const response = await axios.get(`${API}/profiles/search`, { params: { q } });
+      return response.data || [];
+    } catch {
+      return [];
+    }
+  },
   getProfileByUsername: async (username) => {
     if (!API) return null;
     try {

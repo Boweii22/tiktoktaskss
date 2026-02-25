@@ -6,6 +6,7 @@ import { ActionBar } from './ActionBar';
 import { SwipeHint } from './SwipeHint';
 import { StreakBadge } from './StreakBadge';
 import { UsernameButton } from '../profile/UsernameButton';
+import { SearchBar } from '../profile/SearchBar';
 import { ProfileOverlay } from '../profile/ProfileOverlay';
 import { useProfile } from '../../contexts/ProfileContext';
 import { api } from '../../lib/api';
@@ -314,6 +315,7 @@ export const TaskContainer = ({ initialTaskId = null }) => {
               justReset={streakJustReset}
             />
           )}
+          <SearchBar onProfileSelect={(username) => { setProfileOverlayUsername(username); setProfileOverlayOpen(true); }} />
         </div>
       </div>
       <AnimatePresence>

@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import './OnboardingModal.css';
 
 export function OnboardingModal() {
-  const { createProfile, refreshProfile, onboardingComplete, skipOnboarding, setProfile, setOnboardingComplete } = useProfile();
+  const { createProfile, refreshProfile, onboardingComplete, skipOnboarding, setProfile, setOnboardingComplete, loading } = useProfile();
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
@@ -82,7 +82,7 @@ export function OnboardingModal() {
 
   return (
     <AnimatePresence>
-      {!onboardingComplete && (
+      {!loading && !onboardingComplete && (
         <motion.div
           className="onboarding-overlay"
           initial={{ opacity: 0 }}

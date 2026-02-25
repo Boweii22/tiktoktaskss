@@ -6,23 +6,17 @@ const ProfileContext = createContext(null);
 export function ProfileProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [onboardingComplete, setOnboardingComplete] = useState(() => {
-    try {
-      return !!localStorage.getItem('impossible_skipped_onboarding');
-    } catch {
-      return false;
-    }
-  });
+  const [onboardingComplete, setOnboardingComplete] = useState(false);
 
   const fetchProfile = useCallback(async () => {
     try {
       const p = await api.getMyProfile();
       setProfile(p);
-      setOnboardingComplete(!!p || !!localStorage.getItem('impossible_skipped_onboarding'));
+      setOnboardingComplete(!!p);
       return p;
     } catch (e) {
       setProfile(null);
-      setOnboardingComplete(!!localStorage.getItem('impossible_skipped_onboarding'));
+      setOnboardingComplete(false);
       return null;
     } finally {
       setLoading(false);
@@ -46,10 +40,7 @@ export function ProfileProvider({ children }) {
   const refreshProfile = useCallback(() => fetchProfile(), [fetchProfile]);
 
   const skipOnboarding = useCallback(() => {
-    try {
-      localStorage.setItem('impossible_skipped_onboarding', '1');
-      setOnboardingComplete(true);
-    } catch {}
+    setOnboardingComplete(true);
   }, []);
 
   return (

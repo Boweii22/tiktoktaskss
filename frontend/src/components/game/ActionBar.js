@@ -5,6 +5,8 @@ import { ThemeToggle } from '../ThemeToggle';
 import { ShareDialog } from './ShareDialog';
 import { CommentsDrawer } from './CommentsDrawer';
 import { api } from '../../lib/api';
+import { useProfile } from '../../contexts/ProfileContext';
+import { toast } from 'sonner';
 import './ActionBar.css';
 
 const ActionButton = ({ icon: Icon, label, count, onClick, isActive, activeColor, children }) => (
@@ -25,6 +27,7 @@ const ActionButton = ({ icon: Icon, label, count, onClick, isActive, activeColor
 );
 
 export const ActionBar = ({ task, isCreator, onTaskUpdated, onLikeUpdate }) => {
+  const { profile } = useProfile();
   const [liked, setLiked] = useState(task?.liked ?? false);
   const [likeCount, setLikeCount] = useState(task?.likeCount ?? 0);
   const [bookmarked, setBookmarked] = useState(false);
@@ -95,8 +98,12 @@ export const ActionBar = ({ task, isCreator, onTaskUpdated, onLikeUpdate }) => {
   }, []);
 
   const handleComment = useCallback(() => {
+    if (!profile) {
+      toast.error('Create a profile to comment', { description: 'Tap your name area to set up a profile first.' });
+      return;
+    }
     setCommentsOpen(true);
-  }, []);
+  }, [profile]);
 
   const handleCommentsClose = useCallback(() => {
     setCommentsOpen(false);

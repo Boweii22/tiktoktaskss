@@ -1,0 +1,201 @@
+.search-bar__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--fg-default, #fff);
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.search-bar__trigger:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* Full-screen overlay */
+.search-bar__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: max(env(safe-area-inset-top), 16px);
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* Panel */
+.search-bar__panel {
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg-card, #1a1a2e);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+/* Input row */
+.search-bar__input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.search-bar__input-icon {
+  flex-shrink: 0;
+  color: var(--fg-muted, rgba(255,255,255,0.4));
+}
+
+.search-bar__input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  color: var(--fg-default, #fff);
+  font-family: inherit;
+  min-width: 0;
+}
+.search-bar__input::placeholder {
+  color: var(--fg-muted, rgba(255,255,255,0.35));
+}
+
+.search-bar__clear,
+.search-bar__close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: none;
+  color: var(--fg-muted, rgba(255,255,255,0.5));
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+.search-bar__clear:hover,
+.search-bar__close-btn:hover {
+  background: rgba(255,255,255,0.14);
+  color: var(--fg-default, #fff);
+}
+
+/* States (loading, empty, hint) */
+.search-bar__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 20px;
+  color: var(--fg-muted, rgba(255,255,255,0.45));
+  font-size: 0.9rem;
+  text-align: center;
+}
+.search-bar__state--hint {
+  color: var(--fg-muted, rgba(255,255,255,0.3));
+}
+.search-bar__empty-icon {
+  opacity: 0.35;
+  margin-bottom: 4px;
+}
+
+/* Spinner */
+.search-bar__spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: var(--brand-accent, #7c3aed);
+  border-radius: 50%;
+  animation: search-spin 0.7s linear infinite;
+  margin-bottom: 4px;
+}
+@keyframes search-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Results list */
+.search-bar__results {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+  max-height: 52vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.search-bar__results::-webkit-scrollbar {
+  width: 4px;
+}
+.search-bar__results::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+}
+
+/* Individual result */
+.search-bar__result {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  padding: 11px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.14s;
+  border-radius: 0;
+}
+.search-bar__result:hover,
+.search-bar__result:focus-visible {
+  background: rgba(255,255,255,0.06);
+  outline: none;
+}
+
+.search-bar__avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-accent, #7c3aed), #a855f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: 0.03em;
+}
+
+.search-bar__result-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.search-bar__result-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--fg-default, #fff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-bar__result-username {
+  font-size: 0.8rem;
+  color: var(--fg-muted, rgba(255,255,255,0.45));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
