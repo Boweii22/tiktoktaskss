@@ -11,6 +11,7 @@ import { UsernameButton } from '../profile/UsernameButton';
 import { SearchBar } from '../profile/SearchBar';
 import { NotificationBell } from '../notifications/NotificationBell';
 import { ProfileOverlay } from '../profile/ProfileOverlay';
+import { BottomNav } from '../nav/BottomNav';
 import { useProfile } from '../../contexts/ProfileContext';
 import { api } from '../../lib/api';
 import { soundManager } from '../../lib/sounds';
@@ -425,6 +426,9 @@ export const TaskContainer = ({ initialTaskId = null }) => {
         currentIndex={currentIndex}
         totalTasks={tasks.length}
       />
+
+      {/* Mobile bottom navigation */}
+      <BottomNav onProfileOpen={() => setProfileOverlayOpen(true)} />
 
       {/* Following feed — Coming Soon overlay */}
       <AnimatePresence>

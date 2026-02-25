@@ -29,6 +29,14 @@ import { DontReactTask } from './tasks/DontReactTask';
 import { SwipeSpeedTask } from './tasks/SwipeSpeedTask';
 import { TapSameSpotTask } from './tasks/TapSameSpotTask';
 import { ZeroScoreTask } from './tasks/ZeroScoreTask';
+import { MirrorTask } from './tasks/MirrorTask';
+import { MemoryDotTask } from './tasks/MemoryDotTask';
+import { SimonTask } from './tasks/SimonTask';
+import { CountFlashTask } from './tasks/CountFlashTask';
+import { TwoTapTask } from './tasks/TwoTapTask';
+import { NumberOrderTask } from './tasks/NumberOrderTask';
+import { StroopTask } from './tasks/StroopTask';
+import { SilentBeatTask } from './tasks/SilentBeatTask';
 
 export const taskComponents = {
   timing: HoldTask,
@@ -60,7 +68,15 @@ export const taskComponents = {
   dont_react: DontReactTask,
   swipe_slow: SwipeSpeedTask,
   tap_same_spot: TapSameSpotTask,
-  zero_score: ZeroScoreTask
+  zero_score: ZeroScoreTask,
+  mirror: MirrorTask,
+  memory_dot: MemoryDotTask,
+  simon: SimonTask,
+  count_flash: CountFlashTask,
+  two_tap: TwoTapTask,
+  number_order: NumberOrderTask,
+  stroop: StroopTask,
+  silent_beat: SilentBeatTask,
 };
 
 export const getTaskComponent = (type) => {

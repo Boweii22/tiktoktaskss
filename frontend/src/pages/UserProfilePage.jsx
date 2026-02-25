@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Link2, Check } from 'lucide-react';
 import { ProfileOverlay } from '../components/profile/ProfileOverlay';
+import { BottomNav } from '../components/nav/BottomNav';
 import { toast } from 'sonner';
 import './UserProfilePage.css';
 
@@ -36,6 +37,8 @@ export function UserProfilePage() {
           {copied ? <Check size={18} strokeWidth={2.5} /> : <Link2 size={18} strokeWidth={2.5} />}
         </motion.button>
       </div>
+
+      <BottomNav />
 
       {/* Profile overlay rendered as a full page card */}
       <div className="upp-content">

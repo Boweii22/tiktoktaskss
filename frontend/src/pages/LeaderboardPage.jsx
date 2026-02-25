@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Trophy, Flame, Users, ArrowLeft, RefreshCw, User } from 'lucide-react';
 import { api } from '../lib/api';
+import { BottomNav } from '../components/nav/BottomNav';
 import './LeaderboardPage.css';
 
 const TABS = [
@@ -137,6 +138,9 @@ export function LeaderboardPage() {
           </motion.button>
         ))}
       </div>
+
+      {/* Mobile bottom nav */}
+      <BottomNav />
 
       {/* List */}
       <div className="lb-list-wrap">

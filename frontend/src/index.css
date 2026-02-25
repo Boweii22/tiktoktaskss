@@ -171,6 +171,14 @@ body {
   border-radius: 0;
 }
 
+/* On mobile — hide search + leaderboard from header (they're in bottom nav) */
+@media (max-width: 768px) {
+  .tc-header-right .search-bar__trigger,
+  .tc-header-right .tc-leaderboard-btn {
+    display: none;
+  }
+}
+
 /* Leaderboard nav button in header */
 .tc-leaderboard-btn {
   width: 32px;
@@ -339,6 +347,13 @@ body {
 
 .task-card--tiktok {
   padding: max(env(safe-area-inset-top), 12px) 88px max(env(safe-area-inset-bottom), 80px) max(env(safe-area-inset-left), 16px);
+}
+
+/* Extra bottom padding on mobile to clear the bottom nav bar */
+@media (max-width: 768px) {
+  .task-card--tiktok {
+    padding-bottom: calc(max(env(safe-area-inset-bottom), 10px) + 72px);
+  }
 }
 
 .task-card__title {

@@ -433,6 +433,62 @@ TASKS = [
         "instruction": "Every tap increases score. You must end with exactly zero.",
         "type": "zero_score",
         "config": {}
+    },
+    {
+        "id": "mirror",
+        "name": "Mirror",
+        "instruction": "Swipe the OPPOSITE direction to the arrow. 4 rounds. Your instincts will betray you.",
+        "type": "mirror",
+        "config": {"rounds": 4, "time_per_round": 1800}
+    },
+    {
+        "id": "memory_dot",
+        "name": "Ghost Dot",
+        "instruction": "A dot flashes for under a second then vanishes. Tap exactly where it was.",
+        "type": "memory_dot",
+        "config": {"show_ms": 850, "tolerance_px": 18}
+    },
+    {
+        "id": "simon",
+        "name": "Simon",
+        "instruction": "4 colors flash in sequence. Reproduce the exact order. No second chances.",
+        "type": "simon",
+        "config": {"sequence_length": 4, "flash_ms": 420, "gap_ms": 160}
+    },
+    {
+        "id": "count_flash",
+        "name": "Flash Count",
+        "instruction": "A dot flashes multiple times rapidly. Count the exact number and enter it.",
+        "type": "count_flash",
+        "config": {"flash_ms": 110, "gap_ms": 85, "min_count": 5, "max_count": 13}
+    },
+    {
+        "id": "two_tap",
+        "name": "2-Second Gap",
+        "instruction": "Tap once to start the clock. Tap again exactly 2.0 seconds later. No display.",
+        "type": "two_tap",
+        "config": {"target_ms": 2000, "tolerance_ms": 80}
+    },
+    {
+        "id": "number_order",
+        "name": "Find Order",
+        "instruction": "7 numbers are scattered. Tap 1 through 7 in order. One number is microscopic.",
+        "type": "number_order",
+        "config": {"count": 7, "tiny_index": -1}
+    },
+    {
+        "id": "stroop",
+        "name": "Stroop",
+        "instruction": "Tap the color the word is WRITTEN IN — not the color it names. 4 rounds.",
+        "type": "stroop",
+        "config": {"rounds": 4}
+    },
+    {
+        "id": "silent_beat",
+        "name": "Silent Beat",
+        "instruction": "A pulse beats 3 times then stops. Tap on the 4th beat. Feel the rhythm.",
+        "type": "silent_beat",
+        "config": {"beat_ms": 620, "beats": 3, "tolerance": 110}
     }
 ]
 
@@ -671,8 +727,7 @@ def get_tasks():
     """Get global tasks. Prefer user-created tasks (with creator) when present; else built-in. Config is adjusted by completion rate."""
     tasks_with_stats = []
     all_stats = {s["task_id"]: s for s in _get_all_stats()}
-    user_tasks = [{"id": t["id"], "name": t["name"], "instruction": t["instruction"], "type": t["type"], "config": t.get("config") or {}, "created_by_username": t.get("created_by_username") or ""} for t in _get_user_tasks()]
-    all_tasks = user_tasks if user_tasks else TASKS  # User tasks (with creator) or built-in; always ~30
+    all_tasks = TASKS
     for task in all_tasks:
         stats = all_stats.get(task["id"]) or {"task_id": task["id"], "attempts": 0, "completions": 0, "completion_rate": 0.0}
         if "completion_rate" not in stats:

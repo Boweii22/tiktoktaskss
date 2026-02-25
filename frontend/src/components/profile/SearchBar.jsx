@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, User } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -68,22 +69,11 @@ export function SearchBar({ onProfileSelect }) {
     if (e.key === 'Escape') handleClose();
   };
 
-  return (
-    <>
-      <motion.button
-        className="search-bar__trigger"
-        onClick={handleOpen}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.93 }}
-        aria-label="Search users"
-      >
-        <Search size={20} strokeWidth={2.2} />
-      </motion.button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            className="search-bar__overlay"
+  const overlay = (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="search-bar__overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -206,6 +196,21 @@ export function SearchBar({ onProfileSelect }) {
           </motion.div>
         )}
       </AnimatePresence>
+  );
+
+  return (
+    <>
+      <motion.button
+        className="search-bar__trigger"
+        onClick={handleOpen}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.93 }}
+        aria-label="Search users"
+      >
+        <Search size={20} strokeWidth={2.2} />
+      </motion.button>
+
+      {ReactDOM.createPortal(overlay, document.body)}
     </>
   );
 }
