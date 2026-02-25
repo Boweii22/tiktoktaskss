@@ -378,6 +378,33 @@ export const api = {
     return response.data;
   },
 
+  uploadAvatar: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await axios.post(
+      `${API}/profiles/avatar?session_id=${getSessionId()}`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    );
+    return response.data;
+  },
+
+  getNotifications: async () => {
+    if (!API) return [];
+    try {
+      const response = await axios.get(`${API}/notifications`, { params: { session_id: getSessionId() } });
+      return response.data || [];
+    } catch { return []; }
+  },
+  markAllNotificationsRead: async () => {
+    if (!API) return;
+    try { await axios.post(`${API}/notifications/read-all`, null, { params: { session_id: getSessionId() } }); } catch {}
+  },
+  markNotificationRead: async (id) => {
+    if (!API) return;
+    try { await axios.patch(`${API}/notifications/${id}/read`, null, { params: { session_id: getSessionId() } }); } catch {}
+  },
+
   getCommunityProposals: async (username) => {
     if (!API) return [];
     try {

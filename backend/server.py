@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from supabase import create_client, Client
@@ -150,19 +150,76 @@ def update_proposal_status(proposal_id: str, status: str = "implemented", sessio
     if status not in ("pending", "reviewing", "implemented"):
         raise HTTPException(status_code=400, detail="status must be pending, reviewing, or implemented")
     try:
-        r = supabase.table("community_proposals").select("id").eq("id", proposal_id).execute()
+        r = supabase.table("community_proposals").select("*").eq("id", proposal_id).execute()
         if not r.data or len(r.data) == 0:
             raise HTTPException(status_code=404, detail="Proposal not found")
+        proposal = r.data[0]
         supabase.table("community_proposals").update({
             "status": status,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }).eq("id", proposal_id).execute()
+        # Fire notification to proposal creator
+        status_labels = {"pending": "Pending", "reviewing": "In Review", "implemented": "Implemented 🎉"}
+        label = status_labels.get(status, status)
+        proposal_title = (proposal.get("title") or "").strip() or proposal.get("idea_text", "")[:40]
+        try:
+            supabase.table("notifications").insert({
+                "recipient_username": proposal.get("created_by_username"),
+                "type": "proposal_status",
+                "message": f"Your proposal \"{proposal_title}\" is now {label}",
+                "data": {"proposal_id": proposal_id, "status": status},
+            }).execute()
+        except Exception as ne:
+            logging.warning(f"Failed to create notification: {ne}")
         return {"id": proposal_id, "status": status}
     except HTTPException:
         raise
     except Exception as e:
         logging.exception(f"update_proposal_status: {e}")
         raise HTTPException(status_code=500, detail="Failed to update proposal")
+
+
+# Notification endpoints
+@api_router.get("/notifications")
+def get_notifications(session_id: str = ""):
+    if not supabase or not session_id:
+        return []
+    try:
+        prof = supabase.table("profiles").select("username").eq("session_id", session_id).execute()
+        if not prof.data or len(prof.data) == 0:
+            return []
+        username = prof.data[0]["username"]
+        r = supabase.table("notifications").select("*").eq("recipient_username", username).order("created_at", desc=True).limit(40).execute()
+        return r.data or []
+    except Exception as e:
+        logging.warning(f"get_notifications: {e}")
+        return []
+
+
+@api_router.post("/notifications/read-all")
+def mark_all_notifications_read(session_id: str = ""):
+    if not supabase or not session_id:
+        return {"ok": True}
+    try:
+        prof = supabase.table("profiles").select("username").eq("session_id", session_id).execute()
+        if not prof.data:
+            return {"ok": True}
+        username = prof.data[0]["username"]
+        supabase.table("notifications").update({"read": True}).eq("recipient_username", username).eq("read", False).execute()
+    except Exception as e:
+        logging.warning(f"mark_all_read: {e}")
+    return {"ok": True}
+
+
+@api_router.patch("/notifications/{notification_id}/read")
+def mark_notification_read(notification_id: str, session_id: str = ""):
+    if not supabase or not session_id:
+        return {"ok": True}
+    try:
+        supabase.table("notifications").update({"read": True}).eq("id", notification_id).execute()
+    except Exception as e:
+        logging.warning(f"mark_notification_read: {e}")
+    return {"ok": True}
 
 
 # Task definitions - these define the impossible tasks
@@ -904,7 +961,17 @@ def get_task_comments(task_id: str):
         return []
     try:
         r = supabase.table("task_comments").select("*").eq("task_id", task_id).order("created_at").execute()
-        return [{"id": str(c["id"]), "text": c["text"], "created_by_username": c.get("created_by_username") or "", "created_at": c.get("created_at")} for c in (r.data or [])]
+        comments = r.data or []
+        # Batch-fetch avatars for commenters
+        usernames = list({c.get("created_by_username") for c in comments if c.get("created_by_username")})
+        avatar_map = {}
+        if usernames:
+            try:
+                pa = supabase.table("profiles").select("username,avatar_url").in_("username", usernames).execute()
+                avatar_map = {p["username"]: p.get("avatar_url") for p in (pa.data or [])}
+            except Exception:
+                pass
+        return [{"id": str(c["id"]), "text": c["text"], "created_by_username": c.get("created_by_username") or "", "created_at": c.get("created_at"), "avatar_url": avatar_map.get(c.get("created_by_username"))} for c in comments]
     except Exception:
         return []
 
@@ -1175,6 +1242,43 @@ def create_profile(data: ProfileCreate):
     raise HTTPException(status_code=500, detail="Failed to create profile")
 
 
+@api_router.post("/profiles/avatar")
+async def upload_avatar(session_id: str = "", file: UploadFile = File(...)):
+    """Upload a profile avatar image to Supabase Storage."""
+    if not supabase or not session_id:
+        raise HTTPException(status_code=401, detail="Session required")
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Only image files are allowed")
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Image must be under 5MB")
+    try:
+        prof = supabase.table("profiles").select("username").eq("session_id", session_id).execute()
+        if not prof.data:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        username = prof.data[0]["username"]
+        ext = (file.content_type.split("/")[-1] or "jpg").replace("jpeg", "jpg")
+        filename = f"{username}/avatar.{ext}"
+        supabase.storage.from_("avatars").upload(
+            filename, content,
+            {"content-type": file.content_type, "upsert": "true", "cache-control": "3600"}
+        )
+        public_url = supabase.storage.from_("avatars").get_public_url(filename)
+        # Bust cache by appending a timestamp
+        bust = f"?t={int(datetime.now(timezone.utc).timestamp())}"
+        final_url = public_url + bust
+        supabase.table("profiles").update({
+            "avatar_url": final_url,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }).eq("session_id", session_id).execute()
+        return {"avatar_url": final_url}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.exception(f"upload_avatar: {e}")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
+
+
 @api_router.get("/profiles/search")
 def search_profiles(q: str = "", limit: int = 10):
     """Search profiles by username prefix."""
@@ -1184,11 +1288,11 @@ def search_profiles(q: str = "", limit: int = 10):
     if not q:
         return []
     try:
-        r = supabase.table("profiles").select("username,display_name,bio").ilike("username", f"{q}%").limit(min(limit, 20)).execute()
+        r = supabase.table("profiles").select("username,display_name,bio,avatar_url").ilike("username", f"{q}%").limit(min(limit, 20)).execute()
         return r.data or []
     except Exception:
         try:
-            r = supabase.table("profiles").select("username,display_name,bio").ilike("username", f"%{q}%").limit(min(limit, 20)).execute()
+            r = supabase.table("profiles").select("username,display_name,bio,avatar_url").ilike("username", f"%{q}%").limit(min(limit, 20)).execute()
             return r.data or []
         except Exception:
             return []

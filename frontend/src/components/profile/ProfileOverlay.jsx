@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Users, Layers, Heart, X, UserPlus, UserCheck, Bookmark, Plus } from 'lucide-react';
+import { User, Users, Layers, Heart, X, UserPlus, UserCheck, Bookmark, Plus, Camera, Check } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useProfile } from '../../contexts/ProfileContext';
 import { ProposeIdeaModal } from '../tasks/ProposeIdeaModal';
@@ -23,6 +23,10 @@ export function ProfileOverlay({ profile: initialProfile, username, onClose, isO
   const [proposeOpen, setProposeOpen] = useState(false);
   const [proposals, setProposals] = useState([]);
   const [proposalsLoading, setProposalsLoading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const fileInputRef = useRef(null);
 
   const fetchProposals = useCallback(async () => {
     if (!profile?.username) return;
@@ -68,6 +72,41 @@ export function ProfileOverlay({ profile: initialProfile, username, onClose, isO
       setFollowCount(initialProfile.followers_count ?? 0);
     }
   }, [username, initialProfile]);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be under 5MB'); return; }
+    setAvatarFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setAvatarPreview(ev.target.result);
+    reader.readAsDataURL(file);
+    // reset input so same file can be re-selected
+    e.target.value = '';
+  };
+
+  const handleSaveAvatar = async () => {
+    if (!avatarFile) return;
+    setAvatarSaving(true);
+    try {
+      const result = await api.uploadAvatar(avatarFile);
+      setProfile((p) => ({ ...p, avatar_url: result.avatar_url }));
+      refreshProfile();
+      toast.success('Avatar updated!');
+      setAvatarPreview(null);
+      setAvatarFile(null);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Failed to upload avatar');
+    } finally {
+      setAvatarSaving(false);
+    }
+  };
+
+  const handleCancelAvatar = () => {
+    setAvatarPreview(null);
+    setAvatarFile(null);
+  };
 
   const handleFollow = async () => {
     if (!profile?.username || isOwnProfile) return;
@@ -145,15 +184,50 @@ export function ProfileOverlay({ profile: initialProfile, username, onClose, isO
         </button>
 
         <div className="profile-overlay__header">
-          <div className="profile-overlay__avatar">
-            {profile.avatar_url ? (
-              <img src={profile.avatar_url} alt="" />
-            ) : (
-              <div className="profile-overlay__avatar-placeholder">
-                <User size={52} strokeWidth={2} />
-              </div>
+          <div className="profile-overlay__avatar-wrap">
+            <div className="profile-overlay__avatar">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Preview" />
+              ) : profile.avatar_url ? (
+                <img src={profile.avatar_url} alt="" />
+              ) : (
+                <div className="profile-overlay__avatar-placeholder">
+                  <User size={52} strokeWidth={2} />
+                </div>
+              )}
+            </div>
+            {isOwnProfile && !avatarFile && (
+              <button
+                className="profile-overlay__avatar-edit"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Change avatar"
+              >
+                <Camera size={14} strokeWidth={2.5} />
+              </button>
             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+            />
           </div>
+          {isOwnProfile && avatarFile && (
+            <motion.div
+              className="profile-overlay__avatar-editor"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <span className="profile-overlay__avatar-filename">{avatarFile.name}</span>
+              <button className="profile-overlay__avatar-save" onClick={handleSaveAvatar} disabled={avatarSaving}>
+                {avatarSaving ? <div className="profile-overlay__avatar-spinner" /> : <Check size={15} strokeWidth={2.5} />}
+              </button>
+              <button className="profile-overlay__avatar-cancel" onClick={handleCancelAvatar} disabled={avatarSaving}>
+                <X size={15} strokeWidth={2.5} />
+              </button>
+            </motion.div>
+          )}
           <h1 className="profile-overlay__name">{profile.display_name}</h1>
           <p className="profile-overlay__username">@{profile.username}</p>
           {profile.bio && (

@@ -3,7 +3,7 @@ import { User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import './UsernameButton.css';
 
-export function UsernameButton({ username, displayName, onClick }) {
+export function UsernameButton({ username, displayName, avatarUrl, onClick }) {
   if (!username) return null;
 
   return (
@@ -15,7 +15,9 @@ export function UsernameButton({ username, displayName, onClick }) {
       aria-label={`View ${displayName || username}'s profile`}
     >
       <span className="username-button__avatar">
-        <User size={14} strokeWidth={2.5} />
+        {avatarUrl
+          ? <img src={avatarUrl} alt="" className="username-button__avatar-img" />
+          : <User size={14} strokeWidth={2.5} />}
       </span>
       <span className="username-button__text">@{username}</span>
     </motion.button>

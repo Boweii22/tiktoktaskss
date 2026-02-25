@@ -132,7 +132,11 @@ export function CommentsDrawer({ taskId, open, onOpenChange }) {
                     }}
                     transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
                   >
-                    <div className="comments-drawer__avatar">{getInitials(c.created_by_username)}</div>
+                    <div className="comments-drawer__avatar">
+                      {c.avatar_url
+                        ? <img src={c.avatar_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%' }} />
+                        : getInitials(c.created_by_username)}
+                    </div>
                     <div className="comments-drawer__body">
                       <div className="comments-drawer__meta">
                         <span className="comments-drawer__username">@{c.created_by_username || 'anon'}</span>

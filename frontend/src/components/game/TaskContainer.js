@@ -7,6 +7,7 @@ import { SwipeHint } from './SwipeHint';
 import { StreakBadge } from './StreakBadge';
 import { UsernameButton } from '../profile/UsernameButton';
 import { SearchBar } from '../profile/SearchBar';
+import { NotificationBell } from '../notifications/NotificationBell';
 import { ProfileOverlay } from '../profile/ProfileOverlay';
 import { useProfile } from '../../contexts/ProfileContext';
 import { api } from '../../lib/api';
@@ -304,6 +305,7 @@ export const TaskContainer = ({ initialTaskId = null }) => {
             <UsernameButton
               username={profile.username}
               displayName={profile.display_name}
+              avatarUrl={profile.avatar_url}
               onClick={() => setProfileOverlayOpen(true)}
             />
           )}
@@ -316,6 +318,7 @@ export const TaskContainer = ({ initialTaskId = null }) => {
             />
           )}
           <SearchBar onProfileSelect={(username) => { setProfileOverlayUsername(username); setProfileOverlayOpen(true); }} />
+          <NotificationBell />
         </div>
       </div>
       <AnimatePresence>

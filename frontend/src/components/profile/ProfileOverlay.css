@@ -68,18 +68,95 @@
   padding-bottom: 20px;
 }
 
+.profile-overlay__avatar-wrap {
+  position: relative;
+  width: fit-content;
+  margin: 0 auto 16px;
+}
+
 .profile-overlay__avatar {
   width: 100px;
   height: 100px;
-  margin: 0 auto 16px;
   border-radius: 50%;
   overflow: hidden;
 }
+
+.profile-overlay__avatar-edit {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--brand-accent, #7c3aed);
+  border: 2px solid var(--bg-card, #1a1a2e);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s, background 0.15s;
+}
+.profile-overlay__avatar-edit:hover {
+  transform: scale(1.1);
+  background: #6d28d9;
+}
+
+.profile-overlay__avatar-editor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 0 8px;
+}
+.profile-overlay__avatar-filename {
+  flex: 1;
+  font-size: 0.78rem;
+  color: var(--fg-muted, rgba(255,255,255,0.55));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.profile-overlay__avatar-save,
+.profile-overlay__avatar-cancel {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.profile-overlay__avatar-save {
+  background: var(--brand-accent, #7c3aed);
+  color: #fff;
+}
+.profile-overlay__avatar-save:disabled { opacity: 0.6; }
+.profile-overlay__avatar-cancel {
+  background: rgba(255,255,255,0.08);
+  color: var(--fg-muted, rgba(255,255,255,0.5));
+}
+.profile-overlay__avatar-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: avatar-spin 0.6s linear infinite;
+}
+@keyframes avatar-spin { to { transform: rotate(360deg); } }
 
 @media (min-width: 480px) {
   .profile-overlay__avatar {
     width: 112px;
     height: 112px;
+  }
+  .profile-overlay__avatar-edit {
+    width: 30px;
+    height: 30px;
   }
 }
 

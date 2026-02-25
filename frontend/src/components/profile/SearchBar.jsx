@@ -175,7 +175,9 @@ export function SearchBar({ onProfileSelect }) {
                           onClick={() => handleSelect(r)}
                         >
                           <div className="search-bar__avatar">
-                            {getInitials(r.username)}
+                            {r.avatar_url
+                              ? <img src={r.avatar_url} alt="" className="search-bar__avatar-img" />
+                              : getInitials(r.username)}
                           </div>
                           <div className="search-bar__result-info">
                             <span className="search-bar__result-name">{r.display_name || r.username}</span>

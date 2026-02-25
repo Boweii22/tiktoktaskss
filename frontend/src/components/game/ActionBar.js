@@ -63,6 +63,10 @@ export const ActionBar = ({ task, isCreator, onTaskUpdated, onLikeUpdate }) => {
   }, [task?.id, fetchLikes]);
 
   const handleLike = useCallback(async () => {
+    if (!profile) {
+      toast.error('Create a profile to like tasks', { description: 'Tap your name area to set up a profile first.' });
+      return;
+    }
     const now = Date.now();
     const isDoubleTap = now - lastTapRef.current < 400;
     lastTapRef.current = now;
