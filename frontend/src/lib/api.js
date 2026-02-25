@@ -176,6 +176,14 @@ export const api = {
       throw error;
     }
   },
+  getPlayerLeaderboard: async (sortBy = 'completions') => {
+    if (!API) return [];
+    try {
+      const response = await axios.get(`${API}/leaderboard/players`, { params: { sort_by: sortBy } });
+      return response.data || [];
+    } catch { return []; }
+  },
+
   searchProfiles: async (q) => {
     if (!API || !q) return [];
     try {

@@ -6,6 +6,8 @@ import { ProfileProvider } from "./contexts/ProfileContext";
 import { TaskContainer } from "./components/game/TaskContainer";
 import { OnboardingModal } from "./components/profile/OnboardingModal";
 import { AdminPage } from "./pages/AdminPage";
+import { LeaderboardPage } from "./pages/LeaderboardPage";
+import { UserProfilePage } from "./pages/UserProfilePage";
 import { Toaster } from "./components/ui/sonner";
 
 // Main game view - loads random task
@@ -29,9 +31,11 @@ function App() {
               <Route path="/" element={<GameView />} />
               <Route path="/task/:taskId" element={<TaskView />} />
               <Route path="/admin" element={<AdminPage />} />
+              <Route path="/leaderboard" element={<LeaderboardPage />} />
+              <Route path="/u/:username" element={<UserProfilePage />} />
             </Routes>
+            <OnboardingModal />
           </BrowserRouter>
-          <OnboardingModal />
           <Toaster position="top-center" />
         </div>
       </ProfileProvider>

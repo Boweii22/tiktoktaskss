@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { Trophy, Sparkles, Users } from 'lucide-react';
 import { getTaskComponent } from './taskRegistry';
 import { StatsOverlay } from './StatsOverlay';
 import { ActionBar } from './ActionBar';
@@ -92,6 +94,7 @@ export const TaskCard = ({ task, onSuccess, onFail, localAttempts, onCreatorClic
 };
 
 export const TaskContainer = ({ initialTaskId = null }) => {
+  const navigate = useNavigate();
   const { profile, refreshProfile, setProfile } = useProfile();
   const [tasks, setTasks] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -101,7 +104,7 @@ export const TaskContainer = ({ initialTaskId = null }) => {
   const [offline, setOffline] = useState(false);
   const [profileOverlayOpen, setProfileOverlayOpen] = useState(false);
   const [profileOverlayUsername, setProfileOverlayUsername] = useState(null);
-  const [editTask, setEditTask] = useState(null);
+  const [feedTab, setFeedTab] = useState('foryou');
   const [streakJustIncreased, setStreakJustIncreased] = useState(false);
   const [streakJustReset, setStreakJustReset] = useState(false);
 
@@ -301,24 +304,56 @@ export const TaskContainer = ({ initialTaskId = null }) => {
     <div className="task-viewport relative" data-testid="task-container">
       <div className="task-viewport__profile-header" style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)' }}>
         <div className="task-viewport__header-row">
-          {profile?.username && (
-            <UsernameButton
-              username={profile.username}
-              displayName={profile.display_name}
-              avatarUrl={profile.avatar_url}
-              onClick={() => setProfileOverlayOpen(true)}
-            />
-          )}
-          {profile && (
-            <StreakBadge
-              currentStreak={profile.current_streak ?? 0}
-              longestStreak={profile.longest_streak ?? 0}
-              justIncreased={streakJustIncreased}
-              justReset={streakJustReset}
-            />
-          )}
-          <SearchBar onProfileSelect={(username) => { setProfileOverlayUsername(username); setProfileOverlayOpen(true); }} />
-          <NotificationBell />
+          {/* Left: avatar + streak */}
+          <div className="tc-header-left">
+            {profile?.username && (
+              <UsernameButton
+                username={profile.username}
+                displayName={profile.display_name}
+                avatarUrl={profile.avatar_url}
+                onClick={() => setProfileOverlayOpen(true)}
+              />
+            )}
+            {profile && (
+              <StreakBadge
+                currentStreak={profile.current_streak ?? 0}
+                longestStreak={profile.longest_streak ?? 0}
+                justIncreased={streakJustIncreased}
+                justReset={streakJustReset}
+              />
+            )}
+          </div>
+          {/* Right: search + notifications + leaderboard */}
+          <div className="tc-header-right">
+            <SearchBar onProfileSelect={(username) => { setProfileOverlayUsername(username); setProfileOverlayOpen(true); }} />
+            <NotificationBell />
+            <motion.button
+              className="tc-leaderboard-btn"
+              onClick={() => navigate('/leaderboard')}
+              whileTap={{ scale: 0.9 }}
+              title="Leaderboard"
+            >
+              <Trophy size={18} strokeWidth={2.2} />
+            </motion.button>
+          </div>
+        </div>
+
+        {/* Feed tab switcher */}
+        <div className="tc-feed-tabs">
+          <button
+            className={`tc-feed-tab ${feedTab === 'foryou' ? 'tc-feed-tab--active' : ''}`}
+            onClick={() => setFeedTab('foryou')}
+          >
+            <Sparkles size={13} strokeWidth={2.5} />
+            For You
+          </button>
+          <button
+            className={`tc-feed-tab ${feedTab === 'following' ? 'tc-feed-tab--active' : ''}`}
+            onClick={() => setFeedTab('following')}
+          >
+            <Users size={13} strokeWidth={2.5} />
+            Following
+          </button>
         </div>
       </div>
       <AnimatePresence>
@@ -386,10 +421,46 @@ export const TaskContainer = ({ initialTaskId = null }) => {
       
       {/* Swipe hint */}
       <SwipeHint 
-        show={tasks.length > 1}
+        show={tasks.length > 1 && feedTab === 'foryou'}
         currentIndex={currentIndex}
         totalTasks={tasks.length}
       />
+
+      {/* Following feed — Coming Soon overlay */}
+      <AnimatePresence>
+        {feedTab === 'following' && (
+          <motion.div
+            className="tc-following-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <motion.div
+              className="tc-following-card"
+              initial={{ scale: 0.88, y: 30 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.88, y: 30 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+            >
+              <div className="tc-following-icon-wrap">
+                <Users size={38} strokeWidth={1.6} />
+              </div>
+              <h2 className="tc-following-title">Following Feed</h2>
+              <p className="tc-following-desc">
+                See tasks from people you follow — personalized just for you.
+              </p>
+              <div className="tc-following-badge">
+                <Sparkles size={13} strokeWidth={2.5} />
+                Coming Soon
+              </div>
+              <button className="tc-following-back" onClick={() => setFeedTab('foryou')}>
+                Back to For You
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

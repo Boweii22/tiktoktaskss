@@ -1135,6 +1135,27 @@ def review_task_submission(submission_id: str, action: str = "approve", session_
         raise HTTPException(status_code=500, detail="Failed to review submission")
 
 
+@api_router.get("/leaderboard/players")
+def get_player_leaderboard(sort_by: str = "completions", limit: int = 25):
+    """Top players by completions (games_played), streak, or followers."""
+    if not supabase:
+        return []
+    try:
+        limit = min(limit, 50)
+        if sort_by == "streak":
+            r = supabase.table("profiles").select("username,display_name,avatar_url,longest_streak,current_streak").order("longest_streak", desc=True).limit(limit).execute()
+            return [{"rank": i + 1, "username": p["username"], "display_name": p.get("display_name") or p["username"], "avatar_url": p.get("avatar_url"), "value": p.get("longest_streak") or 0, "sub_value": p.get("current_streak") or 0, "sub_label": "current"} for i, p in enumerate(r.data or []) if (p.get("longest_streak") or 0) > 0]
+        elif sort_by == "followers":
+            r = supabase.table("profiles").select("username,display_name,avatar_url,followers_count,following_count").order("followers_count", desc=True).limit(limit).execute()
+            return [{"rank": i + 1, "username": p["username"], "display_name": p.get("display_name") or p["username"], "avatar_url": p.get("avatar_url"), "value": p.get("followers_count") or 0, "sub_value": p.get("following_count") or 0, "sub_label": "following"} for i, p in enumerate(r.data or []) if (p.get("followers_count") or 0) > 0]
+        else:  # completions
+            r = supabase.table("profiles").select("username,display_name,avatar_url,games_played,longest_streak").order("games_played", desc=True).limit(limit).execute()
+            return [{"rank": i + 1, "username": p["username"], "display_name": p.get("display_name") or p["username"], "avatar_url": p.get("avatar_url"), "value": p.get("games_played") or 0, "sub_value": p.get("longest_streak") or 0, "sub_label": "best streak"} for i, p in enumerate(r.data or []) if (p.get("games_played") or 0) > 0]
+    except Exception as e:
+        logging.exception(f"get_player_leaderboard: {e}")
+        return []
+
+
 @api_router.get("/leaderboard")
 def get_leaderboard():
     """Get tasks sorted by difficulty (lowest completion rate)"""

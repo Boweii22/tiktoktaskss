@@ -1,0 +1,257 @@
+/* ── Leaderboard Page ── */
+.lb-page {
+  min-height: 100vh;
+  background: var(--bg-default);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 48px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* Header */
+.lb-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  background: var(--bg-default);
+  border-bottom: 1px solid var(--border-default);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.lb-back {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-primary);
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.15s;
+}
+.lb-back:hover { background: var(--bg-tertiary); transform: scale(1.05); }
+
+.lb-header__title-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lb-header__trophy { color: #f59e0b; }
+
+.lb-header__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.lb-refresh {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.lb-refresh:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+
+/* Tabs */
+.lb-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 14px 16px 10px;
+}
+
+.lb-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border-default);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+
+.lb-tab--active {
+  background: var(--text-primary);
+  color: var(--bg-default);
+  border-color: transparent;
+}
+
+/* Player list */
+.lb-list-wrap {
+  flex: 1;
+  padding: 8px 12px;
+}
+
+.lb-list { display: flex; flex-direction: column; gap: 6px; }
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  position: relative;
+  overflow: hidden;
+}
+.lb-row:hover { background: var(--bg-tertiary); transform: translateX(2px); }
+.lb-row:active { transform: scale(0.99); }
+
+/* Medal rows */
+.lb-row--rank1 {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(245, 158, 11, 0.06));
+  border-color: rgba(251, 191, 36, 0.3);
+}
+.lb-row--rank2 {
+  background: linear-gradient(135deg, rgba(156, 163, 175, 0.12), rgba(107, 114, 128, 0.06));
+  border-color: rgba(156, 163, 175, 0.25);
+}
+.lb-row--rank3 {
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.12), rgba(180, 83, 9, 0.06));
+  border-color: rgba(205, 127, 50, 0.25);
+}
+
+.lb-row__rank {
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lb-row__medal { font-size: 1.3rem; line-height: 1; }
+
+.lb-row__num {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+
+/* Avatar */
+.lb-avatar {
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  border: 2px solid var(--border-default);
+  overflow: hidden;
+}
+.lb-avatar__img { width: 100%; height: 100%; object-fit: cover; }
+
+/* Player info */
+.lb-row__info { flex: 1; min-width: 0; }
+.lb-row__name {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lb-row__username {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+}
+
+/* Stat */
+.lb-row__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+.lb-row__value {
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.lb-row__unit {
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+  margin-top: 1px;
+}
+.lb-row__sub {
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+/* Skeleton */
+.lb-skeleton { display: flex; flex-direction: column; gap: 6px; }
+.lb-skeleton__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: var(--bg-secondary);
+  animation: lb-shimmer 1.5s ease-in-out infinite;
+}
+@keyframes lb-shimmer {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 0.35; }
+}
+.lb-skeleton__rank { width: 28px; height: 18px; border-radius: 4px; background: var(--bg-tertiary); flex-shrink: 0; }
+.lb-skeleton__avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--bg-tertiary); flex-shrink: 0; }
+.lb-skeleton__text { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.lb-skeleton__line { height: 10px; border-radius: 5px; background: var(--bg-tertiary); }
+.lb-skeleton__line--name { width: 55%; }
+.lb-skeleton__line--sub { width: 35%; }
+.lb-skeleton__value { width: 40px; height: 24px; border-radius: 6px; background: var(--bg-tertiary); flex-shrink: 0; }
+
+/* Empty */
+.lb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 80px 24px;
+  text-align: center;
+}
+.lb-empty__icon { color: var(--text-tertiary); opacity: 0.4; }
+.lb-empty__title { font-size: 1rem; font-weight: 600; color: var(--text-secondary); margin: 0; }
+.lb-empty__sub { font-size: 0.85rem; color: var(--text-tertiary); margin: 0; }
+
+/* Responsive */
+@media (max-width: 400px) {
+  .lb-tabs { gap: 6px; padding: 12px 10px 8px; }
+  .lb-tab { padding: 6px 10px; font-size: 0.75rem; }
+  .lb-list-wrap { padding: 8px 8px; }
+}
